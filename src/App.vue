@@ -1,19 +1,20 @@
 <template>
-  <div>Hi there! {{t}}</div>
+  <div>
+    <action-bar @authorize="authorize"/>
+  </div>
 </template>
 
 <script>
+import ActionBar from '@/components/ActionBar'
 export default {
   name: 'App',
-  data () {
-    return {
-      t: new Date().toISOString()
-    }
+  components: {
+    ActionBar
   },
-  created () {
-    setInterval(() => {
-      this.t = new Date().toISOString()
-    }, 100)
+  methods: {
+    authorize () {
+      this.$Swal.fire('hi there!')
+    }
   }
 }
 </script>

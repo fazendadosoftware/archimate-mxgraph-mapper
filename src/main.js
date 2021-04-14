@@ -1,4 +1,11 @@
 import { createApp } from 'vue'
-import App from './App.vue'
+import VWave from 'v-wave'
+import Swal from 'sweetalert2'
+import App from '@/App'
+import '@/assets/css/main.css'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+  .use(VWave)
+
+app.config.globalProperties.$Swal = Swal
+app.mount('#app')
