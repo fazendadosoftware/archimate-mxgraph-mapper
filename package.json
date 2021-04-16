@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
+    "serve": "vue-cli-service serve --open",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "electron:build": "vue-cli-service electron:build",
@@ -14,11 +14,16 @@
   "main": "background.js",
   "dependencies": {
     "core-js": "^3.6.5",
+    "jwt-decode": "^3.1.2",
+    "mxgraph": "^4.2.2",
     "sweetalert2": "^10.16.2",
     "v-wave": "^1.2.8",
-    "vue": "^3.0.0"
+    "vue": "^3.0.0",
+    "vuex": "^4.0.0",
+    "whatwg-fetch": "^3.6.2"
   },
   "devDependencies": {
+    "@tailwindcss/forms": "^0.3.2",
     "@tailwindcss/postcss7-compat": "^2.1.0",
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-eslint": "~4.5.0",
