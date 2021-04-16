@@ -26,7 +26,7 @@ export const store = createStore({
       state.loadingBookmarks = value
     },
     setBookmarks(state, bookmarks = []) {
-      state.bookmards = bookmarks
+      state.bookmarks = bookmarks
     },
     setSelectedBookmark(state, bookmark = null) {
       if (state.selectedBookmark !== null && bookmark !== null && bookmark.id === state.selectedBookmark.id) bookmark = null
@@ -77,7 +77,6 @@ export const store = createStore({
         if (status === 200) {
           const { data: bookmarks = [] } = body
         commit('setBookmarks', bookmarks)
-        console.log('BOOKMAKRS', bookmarks)
         } else {
           throw Error(`${JSON.stringify(body)}`)
         }

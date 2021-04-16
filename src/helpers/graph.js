@@ -15,4 +15,10 @@ window.mxDefaultToolbar = mxgraph.mxDefaultToolbar
 window.mxConnectionHandler = mxgraph.mxConnectionHandler
 window.mxEdgeHandler = mxgraph.mxEdgeHandler
 
+window.mxUtils = mxgraph.mxUtils
+window.mxShape = mxgraph.mxShape
+window.mxCellRenderer = mxgraph.mxCellRenderer
+
+require('./shapes/mxArchimate3')
+
 export default mxgraph

@@ -5,11 +5,17 @@
 </template>
 
 <script>
-import graph from '@/graph'
+import MXGraph from '@/helpers/graph'
 import { mapState } from 'vuex'
-const { mxClient, mxUtils, mxGraph, mxCodec } = graph
 
+const { mxClient, mxUtils, mxGraph, mxCodec } = MXGraph
+let graph = null
 export default {
+  data () {
+    return {
+      graph: null
+    }
+  },
   computed: {
     ...mapState(['selectedBookmark']),
     graphXml () {
@@ -22,7 +28,10 @@ export default {
       if (!mxClient.isBrowserSupported()) {
          mxUtils.error('Browser is not supported!', 200, false)
       } else {
-        const graph = new mxGraph(this.$refs.graphContainer)
+        if (graph !== null) {
+          graph.destroy()
+        }
+        graph = new mxGraph(this.$refs.graphContainer)
         graph.getModel().beginUpdate()
         try {
           const doc = mxUtils.parseXml(xml)
