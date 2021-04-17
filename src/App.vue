@@ -1,8 +1,8 @@
 <template>
   <div class="border-t flex divide-x divide-grey-500 h-screen">
-    <xml-file-column class="col-span-2" />
+    <xml-file-column class="w-2/12 shadow-xl" style="min-width: 250px"/>
     <graph-canvas class="col-span-8 flex-1" />
-    <workspace-column class="col-span-2"/>
+    <workspace-column class="w-2/12 shadow-xl" style="min-width: 250px"/>
   </div>
 </template>
 
@@ -12,7 +12,6 @@ import GraphCanvas from '@/components/GraphCanvas'
 import WorkspaceColumn from '@/components/WorkspaceColumn'
 export default {
   name: 'App',
-  inject: ['Swal'],
   components: {
     XmlFileColumn,
     GraphCanvas,

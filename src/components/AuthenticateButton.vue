@@ -11,7 +11,7 @@
     }">
     {{!authenticating ? 'Load LeanIX Credentials File' : 'Authenticating...'}}
     <input
-      @change="event => loadFile(event, 'credentials')"
+      @change="loadFile"
       :disabled="authenticating"
       class="absolute w-full left-0 opacity-0"
       type="file"
@@ -40,13 +40,12 @@ export default {
   methods: {
     ...mapActions(['getAccessToken', 'fetchVisualizerBookmarks']),
     ...mapMutations(['setAccessToken']),
-    loadFile (event, type) {
+    loadFile (event) {
       const { target: { files } } = event
       if (!files.length) return
       let reader = new FileReader()
       reader.onload = async e => {
-        if (type === 'credentials') {
-          let { host = null, apitoken = null, apiToken = null } = JSON.parse(e.target.result)
+         let { host = null, apitoken = null, apiToken = null } = JSON.parse(e.target.result)
           apiToken = apiToken || apitoken
           if (!host || !apiToken) {
             alert('Invalid credentials file, must be JSON with apitoken and host entries.')
@@ -61,9 +60,6 @@ export default {
           } finally {
             this.authenticating = false
           }
-        } else if (type === 'archimate') {
-          alert('archimate!')
-        }
       }
       reader.readAsText(files[0])
     }

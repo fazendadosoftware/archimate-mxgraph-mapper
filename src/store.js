@@ -1,13 +1,18 @@
 import jwtDecode from 'jwt-decode'
 import { createStore } from 'vuex'
+import worker from 'workerize-loader!@/worker'
+
+const instance = worker()
 
 export const store = createStore({
   state () {
     return {
       accessToken: null,
       loadingBookmarks: false,
-      bookmarks: require('../test/data/bookmarks.json'),
-      selectedBookmark: null
+      bookmarks: [],
+      selectedBookmark: null,
+      diagrams: [],
+      selectedDiagram: null
     }
   },
   getters: {
@@ -29,8 +34,15 @@ export const store = createStore({
       state.bookmarks = bookmarks
     },
     setSelectedBookmark(state, bookmark = null) {
-      if (state.selectedBookmark !== null && bookmark !== null && bookmark.id === state.selectedBookmark.id) bookmark = null
       state.selectedBookmark = bookmark
+      state.selectedDiagram = null
+    },
+    setDiagrams(state, diagrams = []) {
+      state.diagrams = diagrams
+    },
+    setSelectedDiagram(state, selectedDiagram = null) {
+      state.selectedDiagram = selectedDiagram
+      state.selectedBookmark = null
     }
   },
   actions: {
@@ -82,6 +94,15 @@ export const store = createStore({
         }
       } finally {
         commit('setLoadingBookmarks', false)
+      }
+    },
+    async loadDiagramsFromXml ({ commit }, xmlString) {
+      try {
+        const diagrams = await instance.getDiagrams(xmlString)
+        commit('setDiagrams', diagrams)
+      } catch (error) {
+        console.error(error)
+        commit('setDiagrams')
       }
     }
   }
