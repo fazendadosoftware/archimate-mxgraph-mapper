@@ -1,8 +1,10 @@
-import mx from 'mxgraph'
+window.mxLoadResources = false
+window.mxForceIncludes = false
+window.mxResourceExtension = '.txt'
+window.mxLoadStylesheets = false
 
-const mxgraph = mx({
-  mxBasePath: '/static/mxgraph'
-})
+const mxgraph = require('mxgraph')()
+
 // decode bug https://github.com/jgraph/mxgraph/issues/49
 window.mxGraph = mxgraph.mxGraph
 window.mxGraphModel = mxgraph.mxGraphModel
