@@ -101,8 +101,8 @@ export const store = createStore({
         const diagrams = await instance.getDiagrams(xmlString)
         commit('setDiagrams', diagrams)
       } catch (error) {
-        console.error(error)
         commit('setDiagrams')
+        throw error
       }
     }
   }

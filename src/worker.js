@@ -46,16 +46,23 @@ export async function getDiagrams(xml) {
 
   const { connectorIndex, elementIndex } = connectors
     .reduce((accumulator, connector) => {
-      let { $: { 'xmi:idref': id }, extendedProperties: [{ $: { conditional: type = '' } }], source: [source], target: [target] } = connector
-      const { $: { 'xmi:idref': sourceId = null } } = source
-      const { $: { 'xmi:idref': targetId = null } } = target
-      type = type.replace(/[^\w\s]/gi, '').replace(/\r?\n|\r/g, '').trim()
-      accumulator.connectorIndex[id] = { id, sourceId, targetId, type }
-      for (const element of [source, target]) {
-        const { $: { 'xmi:idref': id }, model: [{ $: { type, name } }] } = element
-        const { [id]: { stereotype, documentation } = {} } = elementStereotypeIndex
-        const parentId = parentIndex[id] || null
-        accumulator.elementIndex[id] = { id, parentId, type: stereotype || type, name: name || documentation }
+      try {
+        let { $: { 'xmi:idref': id }, extendedProperties = [], source: [source], target: [target] } = connector
+        let type = ''
+        if (typeof extendedProperties[0] === 'object') ([{ $: { conditional: type = '' } }] = extendedProperties)
+        const { $: { 'xmi:idref': sourceId = null } } = source
+        const { $: { 'xmi:idref': targetId = null } } = target
+        type = type.replace(/[^\w\s]/gi, '').replace(/\r?\n|\r/g, '').trim()
+        accumulator.connectorIndex[id] = { id, sourceId, targetId, type }
+        for (const element of [source, target]) {
+          const { $: { 'xmi:idref': id }, model: [{ $: { type, name } }] } = element
+          const { [id]: { stereotype, documentation } = {} } = elementStereotypeIndex
+          const parentId = parentIndex[id] || null
+          accumulator.elementIndex[id] = { id, parentId, type: stereotype || type, name: name || documentation }
+        }
+      } catch (error) {
+        console.error('getDiagrams', error)
+        throw error
       }
       return accumulator
     }, { connectorIndex: {}, elementIndex: {} })
@@ -63,9 +70,9 @@ export async function getDiagrams(xml) {
   diagrams = diagrams
     .map((diagram, idx) => {
       let {
-        elements: [{ element: elements = [] } = {}],
-        properties: [{ $: properties }],
-        project: [{ $: project }]
+        elements: [{ element: elements = [] } = {}] = [],
+        properties: [{ $: properties }] = [],
+        project: [{ $: project }] = []
       } = diagram
       let connectors
       ({ elements = [], connectors = [] } = elements

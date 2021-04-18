@@ -46,6 +46,9 @@ export default {
   components: {
     SearchInput
   },
+  inject: {
+    $toast: 'Toast'
+  },
   computed: {
     ...mapState(['diagrams', 'selectedDiagram'])
   },
@@ -58,8 +61,25 @@ export default {
       let reader = new FileReader()
       reader.onload = async e => {
         const xml = e.target.result
-        this.loadDiagramsFromXml(xml)
+        try {
+          await this.loadDiagramsFromXml(xml)
+        } catch (error) {
+          console.error(error)
+          this.$toast.fire({
+            icon: 'error',
+            title: 'Error while loading xml file!',
+            text: 'Check console for more details...'
+          })
+        }
       }
+      /*
+      reader.onprogress= data => {
+        if (data.lengthComputable) {
+          const progress = parseInt( ((data.loaded / data.total) * 100), 10 )
+          console.log(progress)
+        }
+      }
+      */
       reader.readAsText(files[0])
     }
   }
