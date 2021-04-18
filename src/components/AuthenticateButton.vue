@@ -13,7 +13,7 @@
     <input
       @change="loadFile"
       :disabled="authenticating"
-      class="absolute w-full left-0 opacity-0"
+      class="absolute w-full h-full left-0 opacity-0"
       type="file"
       accept="application/json,*.json">
   </button>

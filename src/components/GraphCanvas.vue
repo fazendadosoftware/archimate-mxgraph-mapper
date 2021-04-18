@@ -19,7 +19,7 @@
         </nav>
     </div>
     <div v-show="view === 'diagram'" class="flex-1 overflow-auto" ref="graphContainer"/>
-    <div v-if="view === 'diagram'" class="absolute bottom-0 left-0 border" ref="outlineContainer"/>
+    <div v-if="view === 'diagram'" class="absolute bottom-0 left-0 border border-gray-400" ref="outlineContainer"/>
     <div v-if="view === 'diagram' && selectedDiagram !== null" class="absolute top-24 mt-4 right-0">
       <span class="relative z-0 inline-flex shadow-sm rounded-md transform rotate-90">
         <button
@@ -79,6 +79,11 @@
       class="flex-1 overflow-auto bg-gray-200">
       <connector-list v-if="selectedDiagram" :diagram="selectedDiagram" />
     </div>
+    <div
+      v-if="view === 'styleList'"
+      class="flex-1 overflow-auto bg-gray-200">
+      <style-list v-if="selectedDiagram" :diagram="selectedDiagram"/>
+    </div>
   </div>
 </template>
 
@@ -87,31 +92,14 @@ import MXGraph from '@/helpers/graph'
 import { mapState } from 'vuex'
 import ElementList from '@/components/ElementList'
 import ConnectorList from '@/components/ConnectorList'
+import StyleList from '@/components/StyleList'
 
 const { mxClient, mxUtils, mxGraph, mxCodec, mxOutline, mxUndoManager, mxEvent } = MXGraph
 let graph = null
 let outline = null
 
-const styles = {
-  ArchiMate_ApplicationComponent: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#99ffff;shape=mxgraph.archimate3.application;appType=comp;archiType=square;',
-  ArchiMate_ApplicationFunction: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#99ffff;shape=mxgraph.archimate3.application;appType=func;archiType=rounded;',
-  ArchiMate_ApplicationService: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#99ffff;shape=mxgraph.archimate3.application;appType=serv;archiType=rounded',
-  ArchiMate_DataObject: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#99ffff;shape=mxgraph.archimate3.businessObject;overflow=fill',
-  // used ArchiMate_TechnologyArtifact since ArchiMate_TechnologyObject is not in the mxgraph's shape catalog
-  ArchiMate_TechnologyObject: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#AFFFAF;shape=mxgraph.archimate3.application;appType=artifact;archiType=square;',
-  ArchiMate_TechnologyService: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#AFFFAF;shape=mxgraph.archimate3.application;appType=serv;archiType=rounded',
-  ArchiMate_SystemSoftware: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#AFFFAF;shape=mxgraph.archimate3.tech;techType=sysSw;',
-  Activity: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=func;archiType=rounded;',
-  Class: 'html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.businessObject;overflow=fill;',
-  Note: 'text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;',
-  // Relations
-  ArchiMate_Access: 'edgeStyle=elbowEdgeStyle;html=1;endArrow=open;elbow=vertical;endFill=0;dashed=1;dashPattern=1 4;',
-  ArchiMate_Assignment: 'endArrow=block;html=1;endFill=1;startArrow=oval;startFill=1;edgeStyle=elbowEdgeStyle;elbow=vertical;',
-  ArchiMate_Realization: 'edgeStyle=elbowEdgeStyle;html=1;endArrow=block;elbow=vertical;endFill=0;dashed=1;',
-  ArchiMate_Serving: 'edgeStyle=elbowEdgeStyle;html=1;endArrow=open;elbow=vertical;endFill=1;'
-}
 
-const getStyle = type => {
+const getStyle = (type, styles) => {
   if (type && !styles[type]) console.warn(`No style defined for type ${type}`)
   const style = styles[type] || ''
   return style
@@ -123,7 +111,8 @@ export default {
   },
   components: {
     ElementList,
-    ConnectorList
+    ConnectorList,
+    StyleList
   },
   data () {
     return {
@@ -131,14 +120,15 @@ export default {
       viewTabs: [
         { key: 'diagram', label: 'Diagram' },
         { key: 'elementList', label: 'Element List' },
-        { key: 'connectorList', label: 'Connector List' }
+        { key: 'connectorList', label: 'Connector List' },
+        { key: 'styleList', label: 'Style List' }
       ],
       view: 'diagram',
       undoManager: new mxUndoManager()
     }
   },
   computed: {
-    ...mapState(['selectedBookmark', 'selectedDiagram']),
+    ...mapState(['selectedBookmark', 'selectedDiagram', 'styles']),
     graphXml () {
       return this.selectedBookmark?.state?.graphXml
     },
@@ -165,7 +155,7 @@ export default {
           } finally {
             graph.getModel().endUpdate()
           }
-          if (outline !== null) outline.outline.destroy()
+          if (outline !== null && outline.outline !== null) outline.outline.destroy()
           outline = new mxOutline(graph, this.$refs.outlineContainer)
         } catch (error) {
           console.error(error)
@@ -194,19 +184,20 @@ export default {
           elements
             .forEach(element => {
               const { id, parentId, name, type, geometry } = element
-              vertexIndex[id] = graph.insertVertex(vertexIndex[parentId] || graph.getDefaultParent(), id, name, ...geometry, getStyle(type))
+              vertexIndex[id] = graph.insertVertex(vertexIndex[parentId] || graph.getDefaultParent(), id, name, ...geometry, getStyle(type, this.styles))
             })
           connectors
             .forEach(connector => {
               const { id, type, sourceId, targetId } = connector
               const sourceVertex = vertexIndex[sourceId]
               const targetVertex = vertexIndex[targetId]
-              graph.insertEdge(graph.getDefaultParent(), id, '', sourceVertex, targetVertex, getStyle(type))
+              graph.insertEdge(graph.getDefaultParent(), id, '', sourceVertex, targetVertex, getStyle(type, this.styles))
             })
         } finally {
           graph.getModel().endUpdate()
         }
-        if (outline !== null) outline.outline.destroy()
+        if (outline !== null && outline.outline !== null) outline.outline.destroy()
+        
         outline = new mxOutline(graph, this.$refs.outlineContainer)
         graph.getModel().addListener(mxEvent.UNDO, this.undoListener)
         graph.getView().addListener(mxEvent.UNDO, this.undoListener)

@@ -1,5 +1,6 @@
 import jwtDecode from 'jwt-decode'
 import { createStore } from 'vuex'
+import styles from '@/assets/data/styles.json'
 import worker from 'workerize-loader!@/worker'
 
 const instance = worker()
@@ -12,7 +13,8 @@ export const store = createStore({
       bookmarks: [],
       selectedBookmark: null,
       diagrams: [],
-      selectedDiagram: null
+      selectedDiagram: null,
+      styles
     }
   },
   getters: {
@@ -32,6 +34,7 @@ export const store = createStore({
     },
     setBookmarks(state, bookmarks = []) {
       state.bookmarks = bookmarks
+      if (bookmarks.length === 0) state.selectedBookmark = null
     },
     setSelectedBookmark(state, bookmark = null) {
       state.selectedBookmark = bookmark
@@ -39,10 +42,14 @@ export const store = createStore({
     },
     setDiagrams(state, diagrams = []) {
       state.diagrams = diagrams
+      if (diagrams.length === 0) state.selectedDiagram = null
     },
     setSelectedDiagram(state, selectedDiagram = null) {
       state.selectedDiagram = selectedDiagram
       state.selectedBookmark = null
+    },
+    setStyles(state, styles = {}) {
+      state.styles = styles
     }
   },
   actions: {

@@ -22,7 +22,7 @@
           </div>
         </div>
       </div>
-      <current-workspace class="border-t border-gray-400 -mx-2 px-2 py-1 bg-gradient-to-r from-gray-700 to-gray-500 text-white"/>
+      <current-workspace class="border-t border-gray-400 -mx-2 px-2 py-2 bg-gray-600 text-white"/>
     </template>
   </div>
 </template>
