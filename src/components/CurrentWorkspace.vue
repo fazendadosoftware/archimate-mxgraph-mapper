@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="isAuthenticated"
-    class="flex flex-col items-center text-xs font-medium">
+    class="flex flex-col text-xs font-medium">
     <div>{{currentUser}}</div>
     <a :href="currentWorkspace" target="_blank" class="hover:underline">{{currentWorkspace}}</a>
   </div>
