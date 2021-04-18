@@ -209,7 +209,7 @@ export default {
       this.undoManager.undoableEditHappened(evt.getProperty('edit'))
     },
     saveBookmark () {
-      alert('sabing')
+      alert('saving bookmark')
     }
   }
 }
