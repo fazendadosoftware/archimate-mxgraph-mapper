@@ -1,5 +1,6 @@
 import jwtDecode from 'jwt-decode'
 import { createStore } from 'vuex'
+import FlexSearch from 'flexsearch'
 import styles from '@/assets/data/styles.json'
 import worker from 'workerize-loader!@/worker'
 
@@ -12,9 +13,11 @@ export const store = createStore({
       loadingBookmarks: false,
       bookmarks: [],
       selectedBookmark: null,
+      ftsBookmarkIndex: new FlexSearch({ async: true }),
       diagrams: [],
       selectedDiagram: null,
-      styles
+      ftsDiagramIndex: new FlexSearch({ async: true }),
+      styles,
     }
   },
   getters: {
@@ -36,6 +39,9 @@ export const store = createStore({
       state.bookmarks = bookmarks
       if (bookmarks.length === 0) state.selectedBookmark = null
     },
+    setFilteredBookmarks(state, filteredBookmarks = []) {
+      state.filteredBookmarks = filteredBookmarks
+    },
     setSelectedBookmark(state, bookmark = null) {
       state.selectedBookmark = bookmark
       state.selectedDiagram = null
@@ -43,6 +49,9 @@ export const store = createStore({
     setDiagrams(state, diagrams = []) {
       state.diagrams = diagrams
       if (diagrams.length === 0) state.selectedDiagram = null
+    },
+    setFilteredDiagrams(state, filteredDiagrams = []) {
+      state.filteredDiagrams = filteredDiagrams
     },
     setSelectedDiagram(state, selectedDiagram = null) {
       state.selectedDiagram = selectedDiagram
@@ -78,14 +87,14 @@ export const store = createStore({
         throw Error(`${JSON.stringify(body)}`)
       }
     },
-    async fetchVisualizerBookmarks ({ state: { accessToken = null }, commit }) {
-      if (accessToken === null) throw Error('not authenticated')
-      const { instanceUrl } = jwtDecode(accessToken)
+    async fetchVisualizerBookmarks ({ state, commit, dispatch }) {
+      if (state.accessToken === null) throw Error('not authenticated')
+      const { instanceUrl } = jwtDecode(state.accessToken)
       const url = `${instanceUrl}/services/pathfinder/v1/bookmarks?bookmarkType=VISUALIZER`
       const options = {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${accessToken}`
+          Authorization: `Bearer ${state.accessToken}`
         }
       }
       try {
@@ -96,21 +105,49 @@ export const store = createStore({
         if (status === 200) {
           const { data: bookmarks = [] } = body
         commit('setBookmarks', bookmarks)
+        state.ftsBookmarkIndex.clear()
+        state.bookmarks.forEach(({ name }, idx) => state.ftsBookmarkIndex.add(idx, name))
         } else {
           throw Error(`${JSON.stringify(body)}`)
         }
       } finally {
         commit('setLoadingBookmarks', false)
+        await dispatch('searchFTSBookmarkIndex')
       }
     },
-    async loadDiagramsFromXml ({ commit }, xmlString) {
+    async loadDiagramsFromXml ({ commit, state, dispatch }, xmlString) {
       try {
         const diagrams = await instance.getDiagrams(xmlString)
         commit('setDiagrams', diagrams)
+        state.ftsDiagramIndex.clear()
+        state.diagrams.forEach(({ id, name }) => state.ftsDiagramIndex.add(id, name))
       } catch (error) {
         commit('setDiagrams')
         throw error
+      } finally {
+        await dispatch('searchFTSDiagramIndex')
       }
+    },
+    async searchFTSDiagramIndex ({ commit, state }, query = '') {
+      if (!query) {
+        commit('setFilteredDiagrams', state.diagrams)
+        return state.diagrams
+      }
+      const itemsIndex = await state.ftsDiagramIndex.search(query)
+      const filteredDiagrams = itemsIndex.map(idx => state.diagrams[idx])
+      commit('setFilteredDiagrams', filteredDiagrams)
+      return filteredDiagrams
+    },
+    // eslint-disable-next-line
+    async searchFTSBookmarkIndex ({ commit, state }, query = '') {
+      if (!query) {
+        commit('setFilteredBookmarks', state.bookmarks)
+        return state.bookmarks
+      }
+      const itemsIndex = await state.ftsBookmarkIndex.search(query)
+      const filteredBookmarks = itemsIndex.map(idx => state.bookmarks[idx])
+      commit('setFilteredBookmarks', filteredBookmarks)
+      return filteredBookmarks
     }
   }
 })

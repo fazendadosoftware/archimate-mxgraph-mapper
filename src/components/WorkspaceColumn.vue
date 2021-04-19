@@ -4,13 +4,14 @@
     <template
       v-if="isAuthenticated">
       <search-input
+        v-model="queryString"
         @refresh="() => fetchDiagrams()"
         :refreshing="loadingBookmarks"
         :placeholder="'Search workspace diagrams'" />
       <div class="flex-1 flex flex-col rounded-md overflow-hidden">
         <div class="flex flex-col space-y-2 overflow-auto rounded-md">
           <div
-            v-for="bookmark in bookmarks"
+            v-for="bookmark in filteredBookmarks"
             :key="bookmark.id"
             class="transition-colors p-2 text-xs rounded-md cursor-pointer border"
             :class="{
@@ -22,7 +23,7 @@
           </div>
         </div>
       </div>
-      <current-workspace class="border-t border-gray-400 -mx-2 px-2 py-2 bg-gray-600 text-white"/>
+      <current-workspace class="border-t border-gray-400 -mx-2 px-2 py-2 bg-gray-400 text-white"/>
     </template>
   </div>
 </template>
@@ -39,8 +40,13 @@ export default {
     AuthenticateButton,
     CurrentWorkspace
   },
+  data () {
+    return {
+      queryString: ''
+    }
+  },
   computed: {
-    ...mapState(['loadingBookmarks', 'bookmarks', 'selectedBookmark']),
+    ...mapState(['loadingBookmarks', 'filteredBookmarks', 'selectedBookmark']),
     ...mapGetters(['isAuthenticated', 'decodedJwt']),
     currentUser () {
       const { sub } = this.decodedJwt
@@ -52,10 +58,18 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['fetchVisualizerBookmarks']),
+    ...mapActions(['fetchVisualizerBookmarks', 'searchFTSBookmarkIndex']),
     ...mapMutations(['setSelectedBookmark']),
     fetchDiagrams () {
       this.fetchVisualizerBookmarks()
+    }
+  },
+  watch: {
+    bookmarks () {
+      this.queryString = ''
+    },
+    async queryString (query) {
+      await this.searchFTSBookmarkIndex(query)
     }
   }
 }
