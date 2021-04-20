@@ -48,7 +48,7 @@
         {{diagram.name}}
       </div>
     </div>
-    <div class="flex flex-col border border-gray-400 px-2 bg-gray-400 text-white">
+    <div class="flex flex-col px-2 bg-gray-200">
       <div class="text-xs py-2 font-medium">Stylesheet</div>
       <div class="flex space-x-2 mb-2">
         <button

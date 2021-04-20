@@ -54,12 +54,12 @@
         </button>
         <button
           type="button"
-          :disabled="!isAuthenticated"
+          :disabled="!isAuthenticated || savingBookmark"
           @click="saveBookmark"
           class="-ml-px relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-0 transition-opacity"
           :class="{
-            'opacity-50 cursor-default': !isAuthenticated,
-            'opacity-100 cursor-pointer': isAuthenticated
+            'opacity-50 cursor-default': !isAuthenticated || savingBookmark,
+            'opacity-100 cursor-pointer': isAuthenticated && !savingBookmark
           }">
           <span class="sr-only">SaveBookmark</span>
           <!-- Heroicon name: solid/reply -->
@@ -125,7 +125,8 @@ export default {
         { key: 'styleList', label: 'Style List' }
       ],
       view: 'diagram',
-      undoManager: new mxUndoManager()
+      undoManager: new mxUndoManager(),
+      savingBookmark: false
     }
   },
   computed: {
@@ -219,11 +220,8 @@ export default {
       const encoder = new mxCodec()
       const xml = getXml(encoder.encode(graph.getModel()))
       try {
+        this.savingBookmark = true
         await this.createBookmark(xml)
-        this.$toast.fire({
-          icon: 'success',
-          title: 'Bookmark saved'
-        })
       } catch (error) {
         console.error(error)
         this.$toast.fire({
@@ -232,6 +230,7 @@ export default {
           text: 'Check console for more details...'
         })
       } finally {
+        this.savingBookmark = false
         await this.fetchVisualizerBookmarks()
       }
     }

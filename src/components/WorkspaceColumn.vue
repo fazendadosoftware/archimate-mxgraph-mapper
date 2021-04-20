@@ -19,16 +19,18 @@
               'bg-white hover:bg-yellow-200': selectedBookmark?.id !== bookmark.id
             }"
             @click="selectedBookmark?.id !== bookmark.id ? setSelectedBookmark(bookmark) : undefined">
-            {{bookmark.name}}
+            <div>{{bookmark.name}}</div>
+            <div>{{getDate(bookmark.updatedAt)}}</div>
           </div>
         </div>
       </div>
-      <current-workspace class="border-t border-gray-400 -mx-2 px-2 py-2 bg-gray-400 text-white"/>
+      <current-workspace class="-mx-2 px-2 py-2 bg-gray-200"/>
     </template>
   </div>
 </template>
 
 <script>
+import { format } from 'date-fns'
 import { mapGetters, mapState, mapActions, mapMutations } from 'vuex'
 import SearchInput from '@/components/SearchInput'
 import AuthenticateButton from '@/components/AuthenticateButton'
@@ -59,7 +61,10 @@ export default {
   },
   methods: {
     ...mapActions(['fetchVisualizerBookmarks', 'searchFTSBookmarkIndex']),
-    ...mapMutations(['setSelectedBookmark'])
+    ...mapMutations(['setSelectedBookmark']),
+    getDate (dateString = '') {
+      return format(Date.parse(dateString), 'MM/dd/yyyy HH:mm:ss')
+    }
   },
   watch: {
     bookmarks () {
