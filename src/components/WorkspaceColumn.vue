@@ -5,7 +5,7 @@
       v-if="isAuthenticated">
       <search-input
         v-model="queryString"
-        @refresh="() => fetchDiagrams()"
+        @refresh="() => fetchVisualizerBookmarks()"
         :refreshing="loadingBookmarks"
         :placeholder="'Search workspace diagrams'" />
       <div class="flex-1 flex flex-col rounded-md overflow-hidden">
@@ -59,10 +59,7 @@ export default {
   },
   methods: {
     ...mapActions(['fetchVisualizerBookmarks', 'searchFTSBookmarkIndex']),
-    ...mapMutations(['setSelectedBookmark']),
-    fetchDiagrams () {
-      this.fetchVisualizerBookmarks()
-    }
+    ...mapMutations(['setSelectedBookmark'])
   },
   watch: {
     bookmarks () {

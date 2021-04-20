@@ -54,13 +54,14 @@
         </button>
         <button
           type="button"
+          :disabled="!isAuthenticated"
           @click="saveBookmark"
-          class="-ml-px relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-0"
+          class="-ml-px relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-0 transition-opacity"
           :class="{
-            'opacity-50 cursor-default': false,
-            'opacity-100 cursor-pointer': true
+            'opacity-50 cursor-default': !isAuthenticated,
+            'opacity-100 cursor-pointer': isAuthenticated
           }">
-          <span class="sr-only">Redo</span>
+          <span class="sr-only">SaveBookmark</span>
           <!-- Heroicon name: solid/reply -->
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform -rotate-90" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
@@ -89,12 +90,12 @@
 
 <script>
 import MXGraph from '@/helpers/graph'
-import { mapState } from 'vuex'
+import { mapState, mapGetters, mapActions } from 'vuex'
 import ElementList from '@/components/ElementList'
 import ConnectorList from '@/components/ConnectorList'
 import StyleList from '@/components/StyleList'
 
-const { mxClient, mxUtils, mxGraph, mxCodec, mxOutline, mxUndoManager, mxEvent } = MXGraph
+const { mxClient, mxUtils, mxGraph, mxCodec, mxOutline, mxUndoManager, mxEvent, mxUtils: { getXml } } = MXGraph
 let graph = null
 let outline = null
 
@@ -129,6 +130,7 @@ export default {
   },
   computed: {
     ...mapState(['selectedBookmark', 'selectedDiagram', 'styles']),
+    ...mapGetters(['isAuthenticated']),
     graphXml () {
       return this.selectedBookmark?.state?.graphXml
     },
@@ -205,11 +207,33 @@ export default {
     }
   },
   methods: {
+    ...mapActions(['createBookmark', 'fetchVisualizerBookmarks']),
     undoListener (sender, evt) {
       this.undoManager.undoableEditHappened(evt.getProperty('edit'))
     },
-    saveBookmark () {
-      alert('saving bookmark')
+    async saveBookmark () {
+      if (graph === null) {
+        alert('invalid graph!')
+        return
+      }
+      const encoder = new mxCodec()
+      const xml = getXml(encoder.encode(graph.getModel()))
+      try {
+        await this.createBookmark(xml)
+        this.$toast.fire({
+          icon: 'success',
+          title: 'Bookmark saved'
+        })
+      } catch (error) {
+        console.error(error)
+        this.$toast.fire({
+          icon: 'error',
+          title: 'Error while saving bookmark!',
+          text: 'Check console for more details...'
+        })
+      } finally {
+        await this.fetchVisualizerBookmarks()
+      }
     }
   }
 }

@@ -115,6 +115,30 @@ export const store = createStore({
         await dispatch('searchFTSBookmarkIndex')
       }
     },
+    // eslint-disable-next-line
+    async createBookmark ({ state }, graphXml) {
+      const { accessToken = null, selectedDiagram = null } = state
+      if (accessToken === null) throw Error('not authenticated')
+      else if (selectedDiagram === null) throw Error('no selected diagram')
+      const { name, documentation: description = '' } = selectedDiagram
+      const { instanceUrl } = jwtDecode(accessToken)
+      const url = `${instanceUrl}/services/pathfinder/v1/bookmarks`
+      const bookmark = { groupKey: 'freedraw', description, name, type: 'VISUALIZER', state: { graphXml } }
+      const response = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(bookmark),
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      const { ok, status } = response
+      if (ok) {
+        const { data: bookmark } = await response.json()
+        return bookmark
+      }
+      throw Error(`${status} while creating bookmark`)
+    },
     async loadDiagramsFromXml ({ commit, state, dispatch }, xmlString) {
       try {
         const diagrams = await instance.getDiagrams(xmlString)
