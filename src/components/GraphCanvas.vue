@@ -19,7 +19,7 @@
         </nav>
     </div>
     <div v-show="view === 'diagram'" class="flex-1 overflow-auto" ref="graphContainer"/>
-    <div v-if="view === 'diagram'" class="absolute bottom-0 left-0 border border-gray-400" ref="outlineContainer"/>
+    <div v-show="view === 'diagram'" class="absolute bottom-0 left-0 border border-gray-400" ref="outlineContainer"/>
     <div v-if="view === 'diagram' && selectedDiagram !== null" class="absolute top-24 mt-4 right-0">
       <span class="relative z-0 inline-flex shadow-sm rounded-md transform rotate-90">
         <button
@@ -85,6 +85,11 @@
       class="flex-1 overflow-auto bg-gray-200">
       <style-list v-if="selectedDiagram" :diagram="selectedDiagram"/>
     </div>
+    <div
+      v-if="view === 'factSheetList'"
+      class="flex-1 overflow-auto bg-gray-200">
+      <fact-sheet-list v-if="selectedDiagram" :diagram="selectedDiagram"/>
+    </div>
   </div>
 </template>
 
@@ -94,6 +99,7 @@ import { mapState, mapGetters, mapActions } from 'vuex'
 import ElementList from '@/components/ElementList'
 import ConnectorList from '@/components/ConnectorList'
 import StyleList from '@/components/StyleList'
+import FactSheetList from '@/components/FactSheetList'
 
 const { mxClient, mxUtils, mxGraph, mxCodec, mxOutline, mxUndoManager, mxEvent, mxUtils: { getXml } } = MXGraph
 let graph = null
@@ -113,7 +119,8 @@ export default {
   components: {
     ElementList,
     ConnectorList,
-    StyleList
+    StyleList,
+    FactSheetList
   },
   data () {
     return {
@@ -122,7 +129,8 @@ export default {
         { key: 'diagram', label: 'Diagram' },
         { key: 'elementList', label: 'Element List' },
         { key: 'connectorList', label: 'Connector List' },
-        { key: 'styleList', label: 'Style List' }
+        { key: 'styleList', label: 'Style List' },
+        { key: 'factSheetList', label: 'FactSheet list' }
       ],
       view: 'diagram',
       undoManager: new mxUndoManager(),
@@ -134,7 +142,7 @@ export default {
     ...mapGetters(['isAuthenticated']),
     graphXml () {
       return this.selectedBookmark?.state?.graphXml
-    },
+    }
   },
   watch: {
     // https://jgraph.github.io/mxgraph/docs/js-api/files/io/mxCodec-js.html
@@ -200,7 +208,6 @@ export default {
           graph.getModel().endUpdate()
         }
         if (outline !== null && outline.outline !== null) outline.outline.destroy()
-        
         outline = new mxOutline(graph, this.$refs.outlineContainer)
         graph.getModel().addListener(mxEvent.UNDO, this.undoListener)
         graph.getView().addListener(mxEvent.UNDO, this.undoListener)

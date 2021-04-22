@@ -1,8 +1,10 @@
 import jwtDecode from 'jwt-decode'
 import { createStore } from 'vuex'
 import FlexSearch from 'flexsearch'
+import debounce from '@/helpers/debounce'
 import styles from '@/assets/data/styles.json'
 import worker from 'workerize-loader!@/worker'
+import { print } from 'graphql/language/printer'
 
 const instance = worker()
 
@@ -18,6 +20,7 @@ export const store = createStore({
       selectedDiagram: null,
       ftsDiagramIndex: new FlexSearch({ async: true }),
       styles,
+      factSheetIndex: null
     }
   },
   getters: {
@@ -59,6 +62,9 @@ export const store = createStore({
     },
     setStyles(state, styles = {}) {
       state.styles = styles
+    },
+    setFactSheetIndex(state, factSheetIndex = null) {
+      state.factSheetIndex = factSheetIndex
     }
   },
   actions: {
@@ -115,7 +121,6 @@ export const store = createStore({
         await dispatch('searchFTSBookmarkIndex')
       }
     },
-    // eslint-disable-next-line
     async createBookmark ({ state }, graphXml) {
       const { accessToken = null, selectedDiagram = null } = state
       if (accessToken === null) throw Error('not authenticated')
@@ -152,6 +157,41 @@ export const store = createStore({
         await dispatch('searchFTSDiagramIndex')
       }
     },
+    debouncedBuildFactSheetIndex: debounce(({ dispatch }) => {
+      dispatch('buildFactSheetIndex')
+    }, 200),
+    async buildFactSheetIndex ({ state, commit }) {
+      if (state.accessToken === null) throw Error('not authenticated')
+      const { instanceUrl } = jwtDecode(state.accessToken)
+      const { selectedDiagram = null } = state
+      if (selectedDiagram === null) return
+      const externalIds = selectedDiagram.elements.map(({ id }) => `externalId/${id}`)
+      const query = print(require('@/graphql/FetchRelatedFactSheets.gql'))
+      const options = {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${state.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query, variables: { externalIds } })
+      }
+      const response = await fetch(`${instanceUrl}/services/pathfinder/v1/graphql`, options)
+      const { status } = response
+      const body = await response.json()
+      if (status === 200) {
+        const { data: { allFactSheets: { edges = [] } } } = body
+        const factSheetIndex = edges
+          .reduce((accumulator, { node: factSheet }) => {
+            const { externalId: { externalId } } = factSheet
+            accumulator[externalId] = { ...factSheet, externalId }
+            return accumulator
+          }, {})
+        commit('setFactSheetIndex', factSheetIndex)
+      } else {
+        commit('setFactSheetIndex')
+        throw Error(`${JSON.stringify(body)}`)
+      }
+    },
     async searchFTSDiagramIndex ({ commit, state }, query = '') {
       if (!query) {
         commit('setFilteredDiagrams', state.diagrams)
@@ -175,3 +215,20 @@ export const store = createStore({
     }
   }
 })
+
+store.watch(
+  state => state.selectedDiagram,
+  selectedDiagram => {
+    store.commit('setFactSheetIndex')
+    const { isAuthenticated = false } = store.getters
+    if (isAuthenticated && selectedDiagram !== null) store.dispatch('debouncedBuildFactSheetIndex')
+  }
+)
+
+store.watch(
+  state => state.accessToken,
+  accessToken => {
+    store.commit('setFactSheetIndex')
+    if (accessToken !== null && store.state.selectedDiagram !== null) store.dispatch('debouncedBuildFactSheetIndex')
+  }
+)
