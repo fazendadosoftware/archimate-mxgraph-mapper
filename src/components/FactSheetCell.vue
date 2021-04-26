@@ -37,10 +37,11 @@ export default {
   methods: {
     openFactSheet () {
       const { factSheet = null } = this.row
-      const { instanceUrl = null } = this.decodedJwt
+      const { instanceUrl = null, principal: { permission: { workspaceName } = {} } = {} } = this.decodedJwt
       if (instanceUrl === null || factSheet === null) return
       const { id, type } = factSheet
-      console.log('DECODED', instanceUrl, id, type)
+      const url = `${instanceUrl}/${workspaceName}/factsheet/${type}/${id}`
+      open(url)
     }
   }
 }
