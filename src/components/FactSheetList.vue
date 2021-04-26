@@ -17,15 +17,18 @@
           </thead>
           <tbody>
             <tr
-              v-for="(item, i) in items"
-              :key="i"
+              v-for="row in rows"
+              :key="row.id"
               class="bg-white even:bg-gray-100 hover:bg-gray-200 transition-colors cursor-default">
               <td
                 v-for="column in columns"
-                :key="`${column.key}_${i}`"
+                :key="`${column.key}_${row.id}`"
                 class="px-3 py-2 text-xs text-gray-500"
                 :class="column.classes">
-                {{item[column.key]}}
+                <template v-if="!column.component">
+                  {{typeof column.mapFn === 'function' ? column.mapFn(row) : row[column.key]}}
+                </template>
+                <component v-else :is="column.component" :row="row" />
               </td>
             </tr>
           </tbody>
@@ -37,7 +40,9 @@
 </template>
 
 <script>
+import { shallowRef } from 'vue'
 import { mapState } from 'vuex'
+import FactSheetCell from '@/components/FactSheetCell.vue'
 export default {
   props: {
     diagram: {
@@ -48,27 +53,24 @@ export default {
   data () {
     return {
       columns: [
-        { key: 'type', label: 'Name', classes: 'font-medium text-gray-900' },
-        { key: 'diagramType', label: 'Type' },
-        { key: 'style', label: 'Type' }
+        { key: 'type', label: 'Element Type', classes: 'font-medium text-gray-900' },
+        { key: 'name', label: 'Element Name' },
+        { key: 'id', label: 'External ID' },
+        { key: 'factSheet', label: 'FactSheet', component: shallowRef(FactSheetCell) }
       ]
     }
   },
   computed: {
-    ...mapState(['styles']),
-    items () {
-      const { elements = [], connectors = [] } = this.diagram
-      const items = Object.values([
-        ...elements.map(({ type }) => ({ type, diagramType: 'Element' })),
-        ...connectors.map(({ type }) => ({ type, diagramType: 'Connector' })),
-      ].reduce((accumulator, item) => {
-        const { type, diagramType } = item
-        const { [type]: style = null } = this.styles
-        if (type) accumulator[type] = { type, diagramType, style }
-        return accumulator
-      }, {}))
-        .sort(({ type: A }, { type: B }) => A > B ? 1 : A < B ? -1 : 0)
-      return items
+    ...mapState(['factSheetIndex']),
+    rows () {
+      const { elements = [] } = this.diagram
+      const rows = elements
+        .map(element => {
+          const { id } = element
+          const factSheet = this.factSheetIndex === null ? null : this.factSheetIndex[id]
+          return { ...element, factSheet }
+        })
+      return rows
     }
   }
 }

@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col space-y-2 bg-gradient-to-bl from-gray-100 to-gray-50">
     <search-input
+      v-model="queryString"
       class="mt-2 px-2"
       :placeholder="'Search file diagrams'">
       <template v-slot:action-button>
@@ -36,7 +37,7 @@
     </search-input>
     <div class="px-2 flex-1 flex flex-col space-y-2 overflow-auto">
       <div
-        v-for="diagram in diagrams"
+        v-for="diagram in filteredDiagrams"
         :key="diagram.id"
         @click="setSelectedDiagram(diagram)"
         class="transition-colors p-2 text-xs rounded-md cursor-pointer border"
@@ -47,8 +48,8 @@
         {{diagram.name}}
       </div>
     </div>
-    <div class="flex flex-col border border-gray-400 p-2 py-1 bg-gray-600 text-white">
-      <div class="text-sm py-2 font-medium">Stylesheet</div>
+    <div class="flex flex-col px-2 bg-gray-200">
+      <div class="text-xs py-2 font-medium">Stylesheet</div>
       <div class="flex space-x-2 mb-2">
         <button
           v-wave
@@ -91,14 +92,15 @@ export default {
   },
   data () {
     return {
-      loading: false
+      loading: false,
+      queryString: ''
     }
   },
   computed: {
-    ...mapState(['diagrams', 'selectedDiagram', 'styles'])
+    ...mapState(['filteredDiagrams', 'selectedDiagram', 'styles'])
   },
   methods: {
-    ...mapActions(['loadDiagramsFromXml']),
+    ...mapActions(['loadDiagramsFromXml', 'searchFTSDiagramIndex']),
     ...mapMutations(['setSelectedDiagram', 'setStyles', 'setDiagrams']),
     loadFile (event) {
       this.loading = true
@@ -157,6 +159,14 @@ export default {
         }
       }
       reader.readAsText(files[0])
+    }
+  },
+  watch: {
+    diagrams () {
+      this.queryString = ''
+    },
+    async queryString (query) {
+      await this.searchFTSDiagramIndex(query)
     }
   }
 }

@@ -8,6 +8,8 @@
         </svg>
       </div>
       <input
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
         type="text"
         class="focus:ring-0 focus:border-gray-300 block w-full rounded-none rounded-l-md pl-10 text-xs border-gray-300"
         :placeholder="placeholder">
@@ -36,6 +38,10 @@
 <script>
 export default {
   props: {
+    modelValue: {
+      type: String,
+      required: false
+    },
     refreshing: {
       type: Boolean,
       required: false

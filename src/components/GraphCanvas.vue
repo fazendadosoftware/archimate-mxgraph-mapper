@@ -19,7 +19,7 @@
         </nav>
     </div>
     <div v-show="view === 'diagram'" class="flex-1 overflow-auto" ref="graphContainer"/>
-    <div v-if="view === 'diagram'" class="absolute bottom-0 left-0 border border-gray-400" ref="outlineContainer"/>
+    <div v-show="view === 'diagram'" class="absolute bottom-0 left-0 border border-gray-400" ref="outlineContainer"/>
     <div v-if="view === 'diagram' && selectedDiagram !== null" class="absolute top-24 mt-4 right-0">
       <span class="relative z-0 inline-flex shadow-sm rounded-md transform rotate-90">
         <button
@@ -54,13 +54,14 @@
         </button>
         <button
           type="button"
+          :disabled="!isAuthenticated || savingBookmark"
           @click="saveBookmark"
-          class="-ml-px relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-0"
+          class="-ml-px relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-0 transition-opacity"
           :class="{
-            'opacity-50 cursor-default': false,
-            'opacity-100 cursor-pointer': true
+            'opacity-50 cursor-default': !isAuthenticated || savingBookmark,
+            'opacity-100 cursor-pointer': isAuthenticated && !savingBookmark
           }">
-          <span class="sr-only">Redo</span>
+          <span class="sr-only">SaveBookmark</span>
           <!-- Heroicon name: solid/reply -->
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform -rotate-90" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
@@ -84,17 +85,23 @@
       class="flex-1 overflow-auto bg-gray-200">
       <style-list v-if="selectedDiagram" :diagram="selectedDiagram"/>
     </div>
+    <div
+      v-if="view === 'factSheetList'"
+      class="flex-1 overflow-auto bg-gray-200">
+      <fact-sheet-list v-if="selectedDiagram" :diagram="selectedDiagram"/>
+    </div>
   </div>
 </template>
 
 <script>
 import MXGraph from '@/helpers/graph'
-import { mapState } from 'vuex'
+import { mapState, mapGetters, mapActions } from 'vuex'
 import ElementList from '@/components/ElementList'
 import ConnectorList from '@/components/ConnectorList'
 import StyleList from '@/components/StyleList'
+import FactSheetList from '@/components/FactSheetList'
 
-const { mxClient, mxUtils, mxGraph, mxCodec, mxOutline, mxUndoManager, mxEvent } = MXGraph
+const { mxClient, mxUtils, mxGraph, mxCodec, mxOutline, mxUndoManager, mxEvent, mxUtils: { getXml } } = MXGraph
 let graph = null
 let outline = null
 
@@ -112,7 +119,8 @@ export default {
   components: {
     ElementList,
     ConnectorList,
-    StyleList
+    StyleList,
+    FactSheetList
   },
   data () {
     return {
@@ -121,17 +129,20 @@ export default {
         { key: 'diagram', label: 'Diagram' },
         { key: 'elementList', label: 'Element List' },
         { key: 'connectorList', label: 'Connector List' },
-        { key: 'styleList', label: 'Style List' }
+        { key: 'styleList', label: 'Style List' },
+        { key: 'factSheetList', label: 'FactSheet list' }
       ],
       view: 'diagram',
-      undoManager: new mxUndoManager()
+      undoManager: new mxUndoManager(),
+      savingBookmark: false
     }
   },
   computed: {
     ...mapState(['selectedBookmark', 'selectedDiagram', 'styles']),
+    ...mapGetters(['isAuthenticated']),
     graphXml () {
       return this.selectedBookmark?.state?.graphXml
-    },
+    }
   },
   watch: {
     // https://jgraph.github.io/mxgraph/docs/js-api/files/io/mxCodec-js.html
@@ -197,7 +208,6 @@ export default {
           graph.getModel().endUpdate()
         }
         if (outline !== null && outline.outline !== null) outline.outline.destroy()
-        
         outline = new mxOutline(graph, this.$refs.outlineContainer)
         graph.getModel().addListener(mxEvent.UNDO, this.undoListener)
         graph.getView().addListener(mxEvent.UNDO, this.undoListener)
@@ -205,11 +215,33 @@ export default {
     }
   },
   methods: {
+    ...mapActions(['createBookmark', 'fetchVisualizerBookmarks', 'enrichXML']),
     undoListener (sender, evt) {
       this.undoManager.undoableEditHappened(evt.getProperty('edit'))
     },
-    saveBookmark () {
-      alert('saving bookmark')
+    async saveBookmark () {
+      if (graph === null) {
+        alert('invalid graph!')
+        return
+      }
+      const encoder = new mxCodec()
+      const xml = getXml(encoder.encode(graph.getModel()))
+      // add factsheet mapping to xml
+      const enrichedXml = await this.enrichXML(xml)
+      try {
+        this.savingBookmark = true
+        await this.createBookmark(enrichedXml)
+      } catch (error) {
+        console.error(error)
+        this.$toast.fire({
+          icon: 'error',
+          title: 'Error while saving bookmark!',
+          text: 'Check console for more details...'
+        })
+      } finally {
+        this.savingBookmark = false
+        await this.fetchVisualizerBookmarks()
+      }
     }
   }
 }
