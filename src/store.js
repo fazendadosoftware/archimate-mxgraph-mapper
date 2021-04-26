@@ -5,6 +5,7 @@ import debounce from '@/helpers/debounce'
 import styles from '@/assets/data/styles.json'
 import worker from 'workerize-loader!@/worker'
 import { print } from 'graphql/language/printer'
+import { parseStringPromise, Builder } from 'xml2js'
 
 const instance = worker()
 
@@ -202,7 +203,6 @@ export const store = createStore({
       commit('setFilteredDiagrams', filteredDiagrams)
       return filteredDiagrams
     },
-    // eslint-disable-next-line
     async searchFTSBookmarkIndex ({ commit, state }, query = '') {
       if (!query) {
         commit('setFilteredBookmarks', state.bookmarks)
@@ -212,6 +212,47 @@ export const store = createStore({
       const filteredBookmarks = itemsIndex.map(idx => state.bookmarks[idx])
       commit('setFilteredBookmarks', filteredBookmarks)
       return filteredBookmarks
+    },
+    async enrichXML({ state }, xml) {
+      const { factSheetIndex = null } = state
+      const graph = await parseStringPromise(xml)
+      const { mxGraphModel: { root: [{ mxCell: cells = [] } = { mxCell: [] }] = [] } } = graph
+      const { mxCell, object } = cells
+        .reduce((accumulator, cell) => {
+          const { $: { id = null } } = cell
+          const { [id]: factSheet = null } = factSheetIndex
+          if (factSheet === null) accumulator.mxCell.push(cell)
+          else {
+            delete cell.$.id
+            delete cell.$.value
+            accumulator.object.push({
+                $: {
+                  type: 'factSheet',
+                  autoSize: 1,
+                  layoutType: 'auto',
+                  collapsed: 1,
+                  resourceId: factSheet.id,
+                  label: factSheet.name,
+                  resource: factSheet.type,
+                  subType: '',
+                  factSheetId: factSheet.id,
+                  id: id
+                },
+                mxCell: cell
+              })
+            }
+            return accumulator
+          }, { mxCell: [], object: [] })
+      const enrichedGraph = {
+        mxGraphModel: {
+          root: {
+            mxCell,
+            object
+          }
+        }
+      }
+      const enrichedXml = new Builder({ headless: true }).buildObject(enrichedGraph)
+      return enrichedXml
     }
   }
 })

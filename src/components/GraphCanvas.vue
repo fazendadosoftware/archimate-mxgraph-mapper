@@ -215,7 +215,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['createBookmark', 'fetchVisualizerBookmarks']),
+    ...mapActions(['createBookmark', 'fetchVisualizerBookmarks', 'enrichXML']),
     undoListener (sender, evt) {
       this.undoManager.undoableEditHappened(evt.getProperty('edit'))
     },
@@ -226,9 +226,11 @@ export default {
       }
       const encoder = new mxCodec()
       const xml = getXml(encoder.encode(graph.getModel()))
+      // add factsheet mapping to xml
+      const enrichedXml = await this.enrichXML(xml)
       try {
         this.savingBookmark = true
-        await this.createBookmark(xml)
+        await this.createBookmark(enrichedXml)
       } catch (error) {
         console.error(error)
         this.$toast.fire({
