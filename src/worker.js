@@ -11,7 +11,8 @@ const getParentIndex = document => {
   const { 'xmi:XMI': { 'uml:Model': [rootElement] } } = document
 
   const unrollPackagedElements = (element = {}, parentId = null, index = {}) => {
-    const { $: { 'xmi:id': id = null } = {}, packagedElement: packagedElements = [] } = element
+    let { $: { 'xmi:id': id = null } = {}, packagedElement: packagedElements = [] } = element
+    if (typeof id === 'string') id = mapId(id)
     if (parentId !== null && id !== null) index[id] = parentId
     index = packagedElements.reduce((accumulator, element) => ({ ...accumulator, ...unrollPackagedElements(element, id, index) }), index)
     return index
@@ -19,6 +20,10 @@ const getParentIndex = document => {
 
   const parentIndex = unrollPackagedElements(rootElement)
   return parentIndex
+}
+
+function mapId (id = '') {
+  return id.replace(/^([A-Z]{4}_)/, '').replace(/_/g, '-').toUpperCase()
 }
 
 export async function getDiagrams(xml) {
@@ -39,7 +44,8 @@ export async function getDiagrams(xml) {
 
   const elementStereotypeIndex = elements
     .reduce((accumulator, element) => {
-      const { $: { 'xmi:idref': id }, properties: [{ $: { stereotype = null, documentation = null } }] } = element
+      let { $: { 'xmi:idref': id }, properties: [{ $: { stereotype = null, documentation = null } }] } = element
+      id = mapId(id)
       accumulator[id] = { stereotype, documentation }
       return accumulator
     }, {})
@@ -48,14 +54,19 @@ export async function getDiagrams(xml) {
     .reduce((accumulator, connector) => {
       try {
         let { $: { 'xmi:idref': id }, extendedProperties = [], source: [source], target: [target] } = connector
+        id = mapId(id)
         let type = ''
         if (typeof extendedProperties[0] === 'object') ([{ $: { conditional: type = '' } }] = extendedProperties)
-        const { $: { 'xmi:idref': sourceId = null } } = source
-        const { $: { 'xmi:idref': targetId = null } } = target
+        let { $: { 'xmi:idref': sourceId = null } } = source
+        let { $: { 'xmi:idref': targetId = null } } = target
+        sourceId = mapId(sourceId)
+        targetId = mapId(targetId)
+
         type = type.replace(/[^\w\s]/gi, '').replace(/\r?\n|\r/g, '').trim()
         accumulator.connectorIndex[id] = { id, sourceId, targetId, type }
         for (const element of [source, target]) {
-          const { $: { 'xmi:idref': id }, model: [{ $: { type, name } }] } = element
+          let { $: { 'xmi:idref': id }, model: [{ $: { type, name } }] } = element
+          id = mapId(id)
           const { [id]: { stereotype, documentation } = {} } = elementStereotypeIndex
           const parentId = parentIndex[id] || null
           accumulator.elementIndex[id] = { id, parentId, type: stereotype || type, name: name || documentation }
@@ -78,7 +89,8 @@ export async function getDiagrams(xml) {
       ({ elements = [], connectors = [] } = elements
         .map(({ $ }) => $)
         .reduce((accumulator, element) => {
-          const { subject = null, geometry = null } = element
+          let { subject = null, geometry = null } = element
+          if (subject !== null) subject = mapId(subject)
           if (typeof geometry === 'string' && geometry) {
             const { Left: x0 = null, Right: x1 = null, Bottom: y1 = null, Top: y0 = null } = geometry.replace(/;/g, ' ').trim().split(' ')
               .reduce((accumulator, vertex) => {
@@ -95,5 +107,6 @@ export async function getDiagrams(xml) {
       elements = elements.sort(sortElements)
       return { id: idx, ...properties, ...project, elements, connectors }
     })
+  console.log('DIAGRAMS', diagrams)
   return diagrams
 }
