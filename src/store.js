@@ -183,10 +183,12 @@ export const store = createStore({
         const { data: { allFactSheets: { edges = [] } } } = body
         const factSheetIndex = edges
           .reduce((accumulator, { node: factSheet }) => {
-            const { externalId: { externalId } } = factSheet
+            let { externalId: { externalId } } = factSheet
+            if (typeof externalId === 'string') externalId = externalId.toUpperCase()
             accumulator[externalId] = { ...factSheet, externalId }
             return accumulator
           }, {})
+        console.log('FACTSHEET INDEX', factSheetIndex)
         commit('setFactSheetIndex', factSheetIndex)
       } else {
         commit('setFactSheetIndex')

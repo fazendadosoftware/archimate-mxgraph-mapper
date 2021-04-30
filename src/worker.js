@@ -107,6 +107,5 @@ export async function getDiagrams(xml) {
       elements = elements.sort(sortElements)
       return { id: idx, ...properties, ...project, elements, connectors }
     })
-  console.log('DIAGRAMS', diagrams)
   return diagrams
 }
