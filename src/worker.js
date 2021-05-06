@@ -23,7 +23,7 @@ const getParentIndex = document => {
 }
 
 function mapId (id = '') {
-  return id.replace(/^([A-Z]{4}_)/, '').replace(/_/g, '-').toUpperCase()
+  return id.replace(/^([A-Z]{4}_)/, '').replace(/_/g, '-').trim().toUpperCase()
 }
 
 export async function getDiagrams(xml) {
