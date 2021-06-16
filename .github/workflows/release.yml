@@ -3,8 +3,8 @@ name: CI for release tags
 on:
   push:
     # Sequence of patterns matched against refs/tags
-  #  tags:
-  #  - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
   workflow_dispatch:
 
 jobs:
@@ -20,8 +20,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: v${{ github.ref }}
+          release_name: v${{ github.ref }}
           draft: true
           prerelease: true
 
@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         #os: [windows-latest, macos-latest, ubuntu-latest]
-        os: [windows-latest, macos-latest]
+        os: [windows-latest]
 
     steps:
       - uses: actions/checkout@v1
