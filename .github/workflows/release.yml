@@ -44,6 +44,8 @@ jobs:
 
       - name: Build binaries
         run: npm run electron:build --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List contents
         run: ls ${{ github.workspace }}/dist_electron
