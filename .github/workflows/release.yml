@@ -45,6 +45,3 @@ jobs:
         run: npm run electron:build --publish always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Update latest tag
-        uses: EndBug/latest-tag@v1.4.0
