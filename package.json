@@ -1,7 +1,11 @@
 {
   "name": "archimate-mxgraph-mapper",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:fazendadosoftware/archimate-mxgraph-mapper.git"
+  },
   "scripts": {
     "serve": "vue-cli-service serve --open",
     "build": "vue-cli-service build",
