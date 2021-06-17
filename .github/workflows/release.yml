@@ -23,7 +23,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           draft: true
-          prerelease: true
+          prerelease: false
 
   build:
     name: Create cross-platform release builds, tag and upload binaries
@@ -45,22 +45,3 @@ jobs:
         run: npm run electron:build --publish always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: List contents
-        run: ls ${{ github.workspace }}/dist_electron
-
-      #- name: Zip the asset into a zip file
-      #  id: zip_asset
-      #  run: |
-      #    7z a -tzip ${{ github.workspace }}/dist_electron/xtest-${{ matrix.os }}-${{ github.ref }}.zip ${{ github.workspace }}/Release/xtest*
-
-      #- name: Upload release assets
-      #  id: upload_assets
-      #  uses: actions/upload-release-asset@v1
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #  with:
-      #    upload_url: ${{ needs.once.outputs.upload_url }}
-      #    asset_path: ${{ github.workspace }}/Release/xtest-${{ matrix.os }}-${{ github.ref }}.zip
-      #    asset_name: xtest-${{ matrix.os }}-${{ github.ref }}.zip
-      #    asset_content_type: application/octet-stream
