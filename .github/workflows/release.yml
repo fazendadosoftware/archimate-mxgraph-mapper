@@ -23,7 +23,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
           draft: true
-          prerelease: false
+          prerelease: true
 
   build:
     name: Create cross-platform release builds, tag and upload binaries
