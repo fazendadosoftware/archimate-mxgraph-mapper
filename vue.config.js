@@ -6,5 +6,25 @@ module.exports = {
       .use('graphql-tag/loader')
       .loader('graphql-tag/loader')
       .end()
+  },
+  pluginOptions: {
+    electronBuilder: {
+      builderOptions: {
+        // options placed here will be merged with default configuration and passed to electron-builder
+        // Do not generate blockmap artifacts
+        // https://github.com/electron-userland/electron-builder/issues/2900
+        build: {
+          win: {
+            differentialPackage: false
+          },
+          linux: {
+            differentialPackage: false
+          },
+          dmg: {
+            writeUpdateInfo: false
+          }
+        }
+      }
+    }
   }
 }
