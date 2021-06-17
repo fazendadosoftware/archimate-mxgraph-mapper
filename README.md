@@ -1,5 +1,8 @@
 # archimate-mxgraph-mapper
 
+![GitHub package.json version](https://img.shields.io/github/package-json/v/fazendadosoftware/archimate-mxgraph-mapper)
+![GitHub all releases](https://img.shields.io/github/downloads/fazendadosoftware/archimate-mxgraph-mapper/total)
+
 ## Project setup
 ```
 npm install
@@ -22,3 +25,6 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+### Download binaries
+[Windows]()
