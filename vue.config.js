@@ -13,7 +13,7 @@ module.exports = {
         // options placed here will be merged with default configuration and passed to electron-builder
         // Do not generate blockmap artifacts
         // https://github.com/electron-userland/electron-builder/issues/2900
-        win: {
+        nsis: {
           differentialPackage: false
         },
         linux: {
