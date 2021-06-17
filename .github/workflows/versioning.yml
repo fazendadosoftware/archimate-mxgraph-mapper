@@ -14,7 +14,7 @@ jobs:
 
   build:
     name: Create cross-platform release builds, tag and upload binaries
-    needs: once
+    needs: actions-tagger
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
