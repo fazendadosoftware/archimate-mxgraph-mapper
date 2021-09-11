@@ -4,13 +4,12 @@ import FlexSearch from 'flexsearch'
 import debounce from '@/helpers/debounce'
 import styles from '@/assets/data/styles.json'
 import worker from 'workerize-loader!@/worker'
-import { print } from 'graphql/language/printer'
 import { parseStringPromise, Builder } from 'xml2js'
 
 const instance = worker()
 
 export const store = createStore({
-  state () {
+  state() {
     return {
       accessToken: null,
       loadingBookmarks: false,
@@ -69,7 +68,7 @@ export const store = createStore({
     }
   },
   actions: {
-    async getAccessToken ({ commit, dispatch }, { host: instance = null, apiToken = null } = {}) {
+    async getAccessToken({ commit, dispatch }, { host: instance = null, apiToken = null } = {}) {
       if (!instance || !apiToken) throw Error('invalid credentials')
       const base64ApiToken = Buffer.from(`apitoken:${apiToken}`).toString('base64')
       const options = {
@@ -94,7 +93,7 @@ export const store = createStore({
         throw Error(`${JSON.stringify(body)}`)
       }
     },
-    async fetchVisualizerBookmarks ({ state, commit, dispatch }) {
+    async fetchVisualizerBookmarks({ state, commit, dispatch }) {
       if (state.accessToken === null) throw Error('not authenticated')
       const { instanceUrl } = jwtDecode(state.accessToken)
       const url = `${instanceUrl}/services/pathfinder/v1/bookmarks?bookmarkType=VISUALIZER`
@@ -111,9 +110,9 @@ export const store = createStore({
         const body = await response.json()
         if (status === 200) {
           const { data: bookmarks = [] } = body
-        commit('setBookmarks', bookmarks)
-        state.ftsBookmarkIndex.clear()
-        state.bookmarks.forEach(({ name }, idx) => state.ftsBookmarkIndex.add(idx, name))
+          commit('setBookmarks', bookmarks)
+          state.ftsBookmarkIndex.clear()
+          state.bookmarks.forEach(({ name }, idx) => state.ftsBookmarkIndex.add(idx, name))
         } else {
           throw Error(`${JSON.stringify(body)}`)
         }
@@ -122,7 +121,7 @@ export const store = createStore({
         await dispatch('searchFTSBookmarkIndex')
       }
     },
-    async createBookmark ({ state }, graphXml) {
+    async createBookmark({ state }, graphXml) {
       const { accessToken = null, selectedDiagram = null } = state
       if (accessToken === null) throw Error('not authenticated')
       else if (selectedDiagram === null) throw Error('no selected diagram')
@@ -145,7 +144,7 @@ export const store = createStore({
       }
       throw Error(`${status} while creating bookmark`)
     },
-    async loadDiagramsFromXml ({ commit, state, dispatch }, xmlString) {
+    async loadDiagramsFromXml({ commit, state, dispatch }, xmlString) {
       try {
         const diagrams = await instance.getDiagrams(xmlString)
         commit('setDiagrams', diagrams)
@@ -161,13 +160,47 @@ export const store = createStore({
     debouncedBuildFactSheetIndex: debounce(({ dispatch }) => {
       dispatch('buildFactSheetIndex')
     }, 200),
-    async buildFactSheetIndex ({ state, commit }) {
+    async fetchWorkspaceDataModel({ state }) {
+      if (state.accessToken === null) throw Error('not authenticated')
+      const { instanceUrl } = jwtDecode(state.accessToken)
+      const options = {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${state.accessToken}` }
+      }
+      const response = await fetch(`${instanceUrl}/services/pathfinder/v1/models/dataModel`, options)
+      const { status } = response
+      const body = await response.json()
+      if (status === 200) return body.data
+      else {
+        throw Error(JSON.stringify(body))
+      }
+    },
+    async buildFactSheetIndex({ state, dispatch, commit }) {
+      let query = `
+        query($externalIds: [String!]) {
+          allFactSheets(filter: { externalIds: $externalIds }) {
+            edges {
+              node {
+                id
+                type
+                name
+                {{factSheetTypeExternalIdPlaceholder}}
+              }
+            }
+          }
+        }
+      `
       if (state.accessToken === null) throw Error('not authenticated')
       const { instanceUrl } = jwtDecode(state.accessToken)
       const { selectedDiagram = null } = state
       if (selectedDiagram === null) return
+      const factSheetTypes = await dispatch('fetchWorkspaceDataModel')
+        .then(dataModel => Object.keys(dataModel.factSheets))
+      const factSheetTypeExternalIdFragment = factSheetTypes
+        .map(factSheetType => `...on ${factSheetType}{externalId{externalId}}`)
+        .join(' ')
+      query = query.replace('{{factSheetTypeExternalIdPlaceholder}}', factSheetTypeExternalIdFragment)
       const externalIds = selectedDiagram.elements.map(({ id }) => `externalId/${id}`)
-      const query = print(require('@/graphql/FetchRelatedFactSheets.gql'))
       const options = {
         method: 'POST',
         headers: {
@@ -195,7 +228,7 @@ export const store = createStore({
         throw Error(`${JSON.stringify(body)}`)
       }
     },
-    async searchFTSDiagramIndex ({ commit, state }, query = '') {
+    async searchFTSDiagramIndex({ commit, state }, query = '') {
       if (!query) {
         commit('setFilteredDiagrams', state.diagrams)
         return state.diagrams
@@ -205,7 +238,7 @@ export const store = createStore({
       commit('setFilteredDiagrams', filteredDiagrams)
       return filteredDiagrams
     },
-    async searchFTSBookmarkIndex ({ commit, state }, query = '') {
+    async searchFTSBookmarkIndex({ commit, state }, query = '') {
       if (!query) {
         commit('setFilteredBookmarks', state.bookmarks)
         return state.bookmarks
@@ -228,23 +261,23 @@ export const store = createStore({
             delete cell.$.id
             delete cell.$.value
             accumulator.object.push({
-                $: {
-                  type: 'factSheet',
-                  autoSize: 1,
-                  layoutType: 'auto',
-                  collapsed: 1,
-                  resourceId: factSheet.id,
-                  label: factSheet.name,
-                  resource: factSheet.type,
-                  subType: '',
-                  factSheetId: factSheet.id,
-                  id: id
-                },
-                mxCell: cell
-              })
-            }
-            return accumulator
-          }, { mxCell: [], object: [] })
+              $: {
+                type: 'factSheet',
+                autoSize: 1,
+                layoutType: 'auto',
+                collapsed: 1,
+                resourceId: factSheet.id,
+                label: factSheet.name,
+                resource: factSheet.type,
+                subType: '',
+                factSheetId: factSheet.id,
+                id: id
+              },
+              mxCell: cell
+            })
+          }
+          return accumulator
+        }, { mxCell: [], object: [] })
       const enrichedGraph = {
         mxGraphModel: {
           root: {
