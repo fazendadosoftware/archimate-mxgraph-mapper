@@ -9,7 +9,7 @@
         'opacity-50 animate-pulse': isAuthenticating,
         'hover:bg-indigo-700': !isAuthenticating
       }">
-      Load LeanIX Credentials File
+      {{ isAuthenticating ? 'Authenticating...' : 'Load LeanIX Credentials File' }}
       <input
         :disabled="isAuthenticating"
         class="hidden"

@@ -26,33 +26,30 @@ const getAccessToken = async (host: string, apitoken: string) => {
   }
 }
 
-const useWorkspace = () => {
-  const isAuthenticating = ref(false)
-  const accessToken: Ref<null | string> = ref(null)
+const isAuthenticating = ref(false)
+const accessToken: Ref<null | string> = ref(null)
 
-  const authenticate = async (host: string, apitoken: string) => {
-    console.log('AUTHENTICATING', host, apitoken)
-    if (unref(isAuthenticating)) return
-    try {
-      isAuthenticating.value = true
-      accessToken.value = await getAccessToken(host, apitoken)
-    } catch (err) {
-      console.error(err)
-      void toast.fire({
-        title: 'Error while loggin in',
-        text: 'Check console for more details',
-        icon: 'error'
-      })
-      accessToken.value = null
-    } finally {
-      isAuthenticating.value = false
-    }
-  }
-
-  const logout = async () => {
+const authenticate = async (host: string, apitoken: string) => {
+  if (unref(isAuthenticating)) return
+  try {
+    isAuthenticating.value = true
+    accessToken.value = await getAccessToken(host, apitoken)
+  } catch (err) {
+    console.error(err)
+    void toast.fire({
+      title: 'Error while loggin in',
+      text: 'Check console for more details',
+      icon: 'error'
+    })
     accessToken.value = null
+  } finally {
+    isAuthenticating.value = false
   }
+}
 
+const logout = async () => { accessToken.value = null }
+
+const useWorkspace = () => {
   return {
     authenticate,
     isAuthenticating,

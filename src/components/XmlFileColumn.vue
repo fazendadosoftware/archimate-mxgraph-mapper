@@ -50,6 +50,7 @@
     </div>
     <div v-if="hasDiagrams" class="flex justify-center p-2 bg-gray-200 border-t border-gray-300">
       <button
+        v-if="isAuthenticated"
         v-wave
         class="inline-flex items-center justify-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-500 focus:outline-none focus:ring-0">
         Import all diagrams
@@ -61,7 +62,9 @@
 <script lang="ts" setup>
 import SearchInput from './SearchInput.vue'
 import useDiagrams from '../composables/useDiagrams'
+import useWorkspace from '../composables/useWorkspace'
 
 const SearchInputComponent = SearchInput as any
 const { loadFile, loading, filteredDiagrams, searchQuery, isSelected, toggleDiagramSelection, hasDiagrams } = useDiagrams()
+const { isAuthenticated } = useWorkspace()
 </script>
