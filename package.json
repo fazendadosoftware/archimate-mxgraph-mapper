@@ -15,6 +15,7 @@
     "app:build": "yarn build:for:electron && yarn electron:builder"
   },
   "dependencies": {
+    "buffer": "^6.0.3",
     "comlink": "^4.3.1",
     "flexsearch": "^0.7.21",
     "mxgraph": "^4.2.2",
