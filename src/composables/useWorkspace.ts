@@ -86,6 +86,8 @@ const authenticate = async (host: string, apitoken: string) => {
 
 const logout = async () => { accessToken.value = null }
 
+const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
+
 const useWorkspace = () => {
   return {
     authenticate,
@@ -97,6 +99,8 @@ const useWorkspace = () => {
     bookmarks: computed(() => unref(bookmarks)),
     filteredBookmarks: computed(() => unref(bookmarks)),
     selectedBookmark,
+    toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
+    isSelected,
     getDate
   }
 }

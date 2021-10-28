@@ -6,12 +6,12 @@
         <div
           v-for="bookmark in filteredBookmarks"
           :key="bookmark.id"
-          class="transition-colors p-2 text-xs rounded-md cursor-pointer border"
+          class="select-none transition-colors p-2 text-xs rounded-md cursor-pointer border"
           :class="{
-            'bg-yellow-300': selectedBookmark?.id === bookmark.id,
-            'bg-white hover:bg-yellow-200': selectedBookmark?.id !== bookmark.id
+            'bg-yellow-300': isSelected(bookmark),
+            'bg-white hover:bg-yellow-200': !isSelected(bookmark)
           }"
-          @click="selectedBookmark?.id !== bookmark.id ? setSelectedBookmark(bookmark) : undefined">
+          @click="toggleBookmarkSelection(bookmark)">
           <div>{{ bookmark.name }}</div>
           <div>{{ getDate(bookmark.updatedAt) }}</div>
         </div>
@@ -23,9 +23,6 @@
 <script lang="ts" setup>
 import useWorkspace from '../composables/useWorkspace'
 import AuthenticateButton from './AuthenticateButton.vue'
-const { filteredBookmarks, selectedBookmark, getDate } = useWorkspace()
+const { filteredBookmarks, selectedBookmark, getDate, toggleBookmarkSelection, isSelected } = useWorkspace()
 
-const setSelectedBookmark = (bookmark: any) => {
-  console.log('SETTING BOOKMARK', bookmark)
-}
 </script>
