@@ -1,6 +1,11 @@
 <template>
   <div class="flex flex-col space-y-2 bg-white">
-    <div class="border-b" />
+    <div class="flex">
+      <search-bar
+        v-model="searchQuery"
+        class="m-2"
+        placeholder="Search workspace diagrams" />
+    </div>
     <div class="flex-1 flex flex-col rounded-md overflow-hidden">
       <div class="flex flex-col space-y-2 overflow-auto rounded-md">
         <div
@@ -25,8 +30,8 @@
 
 <script lang="ts" setup>
 import useWorkspace from '../composables/useWorkspace'
+import SearchBar from './SearchBar.vue'
 import AuthenticateButton from './AuthenticateButton.vue'
 
 const { filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery } = useWorkspace()
-
 </script>

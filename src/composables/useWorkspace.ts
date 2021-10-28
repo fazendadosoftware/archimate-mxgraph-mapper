@@ -47,7 +47,7 @@ const getAccessToken = async (host: string, apitoken: string) => {
 const fetchVisualizerBookmarks = async () => {
   if (unref(accessToken) === null) throw Error('not authenticated')
   const bearer = unref(accessToken) ?? ''
-  const { instanceUrl } = jwtDecode(bearer) as { instanceUrl: string }
+  const { instanceUrl } = jwtDecode<{ instanceUrl: string }>(bearer)
   const url = `${instanceUrl}/services/pathfinder/v1/bookmarks?bookmarkType=VISUALIZER`
   const options = { method: 'GET', headers: { Authorization: `Bearer ${bearer}` } }
   try {
@@ -93,21 +93,23 @@ const authenticate = async (host: string, apitoken: string) => {
   }
 }
 
-const logout = async () => {
+const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
+
+const logout = async (searchQuery?: Ref<string>) => {
   accessToken.value = null
   bookmarkIndex.value = {}
   selectedBookmark.value = null
+  if (searchQuery !== undefined) searchQuery.value = ''
 }
-
-const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
 
 const useWorkspace = () => {
   const searchQuery = ref('')
+
   return {
     authenticate,
     isAuthenticating,
     isAuthenticated: computed(() => unref(accessToken) !== null),
-    logout,
+    logout: async () => await logout(searchQuery),
     searchQuery,
     fetchVisualizerBookmarks,
     isLoading,
