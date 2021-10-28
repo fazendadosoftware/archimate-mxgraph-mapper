@@ -1,7 +1,8 @@
-import { ref, unref, Ref, computed } from 'vue'
+import { ref, unref, Ref, computed, watch } from 'vue'
 import { Buffer } from 'buffer'
 import jwtDecode from 'jwt-decode'
 import { format } from 'date-fns'
+import { Index } from 'flexsearch'
 import useSwal from './useSwal'
 
 const { toast } = useSwal()
@@ -10,8 +11,14 @@ const isAuthenticating = ref(false)
 const accessToken: Ref<null | string> = ref(null)
 const loading = ref(0)
 const isLoading = computed(() => unref(loading) > 0)
-const bookmarks: Ref<any[]> = ref([])
+const bookmarkIndex: Ref<Record<string, any>> = ref({})
 const selectedBookmark: Ref<any> = ref(null)
+const ftsBookmarkIndex = ref(new Index())
+
+watch(bookmarkIndex, bookmarkIndex => {
+  ftsBookmarkIndex.value = new Index()
+  Object.values(bookmarkIndex).forEach(({ id, name }) => unref(ftsBookmarkIndex).add(id, name))
+})
 
 const getDate = (dateString: string = '') => format(Date.parse(dateString), 'MM/dd/yyyy HH:mm:ss')
 
@@ -50,7 +57,9 @@ const fetchVisualizerBookmarks = async () => {
     const body = await response.json()
     if (status === 200) {
       const { data = [] } = body
-      bookmarks.value = data
+      console.log(data.map(({ id, ...bookmark }: any) => ({ id, bookmark })))
+      bookmarkIndex.value = data
+        .reduce((accumulator: any, bookmark: any) => ({ ...accumulator, [bookmark.id]: bookmark }), {})
     } else {
       console.error(body)
       void toast.fire({
@@ -58,7 +67,7 @@ const fetchVisualizerBookmarks = async () => {
         title: 'Error while fetching diagrams',
         text: 'Check console for more details'
       })
-      bookmarks.value = []
+      bookmarkIndex.value = {}
     }
   } finally {
     loading.value--
@@ -89,15 +98,26 @@ const logout = async () => { accessToken.value = null }
 const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
 
 const useWorkspace = () => {
+  const searchQuery = ref('')
   return {
     authenticate,
     isAuthenticating,
     isAuthenticated: computed(() => unref(accessToken) !== null),
     logout,
+    searchQuery,
     fetchVisualizerBookmarks,
     isLoading,
-    bookmarks: computed(() => unref(bookmarks)),
-    filteredBookmarks: computed(() => unref(bookmarks)),
+    filteredBookmarks: computed(() => {
+      const filteredDiagrams = unref(searchQuery) === ''
+        ? Object.values(unref(bookmarkIndex))
+        : unref(ftsBookmarkIndex).search(unref(searchQuery))
+          .reduce((accumulator: any, id) => {
+            const bookmark = unref(bookmarkIndex)[id]
+            if (bookmark !== undefined) accumulator.push(bookmark)
+            return accumulator
+          }, [])
+      return filteredDiagrams
+    }),
     selectedBookmark,
     toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
     isSelected,

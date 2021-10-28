@@ -23,6 +23,6 @@
 <script lang="ts" setup>
 import useWorkspace from '../composables/useWorkspace'
 import AuthenticateButton from './AuthenticateButton.vue'
-const { filteredBookmarks, selectedBookmark, getDate, toggleBookmarkSelection, isSelected } = useWorkspace()
+const { filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery } = useWorkspace()
 
 </script>
