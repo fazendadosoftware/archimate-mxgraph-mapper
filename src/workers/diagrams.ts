@@ -8,7 +8,7 @@ const sortElements = (elementA = {} as any, elementB = {} as any) => {
   else return 0
 }
 
-const getParentIndex = (document: any): Record<string, any> => {
+const getParentIndex = (document: any): Record<string, IElement> => {
   const { 'xmi:XMI': { 'uml:Model': [rootElement] } } = document
 
   const unrollPackagedElements = (element = {} as any, parentId = null, index = {} as any) => {
@@ -27,12 +27,18 @@ const mapId = (id: string = ''): string => id.replace(/^([A-Z]{4}_)/, '').replac
 
 export async function getDiagrams (xml: string) {
   const document = await parseStringPromise(xml)
-  let {
+  const {
     'xmi:XMI': {
-      // @ts-expect-error
-      'xmi:Extension': [{ diagrams: [{ diagram: diagrams = [] } = {}], elements: [{ element: elements = [] } = {}], connectors: [{ connector: connectors = [] } = {}] } = {}] = []
+      'xmi:Extension': [{
+        diagrams: [{ diagram: _diagrams = [] } = { diagram: [] }],
+        elements: [{ element: _elements = [] } = { element: [] }],
+        connectors: [{ connector: _connectors = [] } = { connector: [] }]
+      } = { diagrams: [], elements: [], connectors: [] }] = []
     }
   } = document
+
+  const elements = _elements as IElement[]
+  const connectors = _connectors as IConnector[]
 
   const parentIndex = getParentIndex(document)
 
@@ -72,7 +78,7 @@ export async function getDiagrams (xml: string) {
       return accumulator
     }, { connectorIndex: {}, elementIndex: {} })
 
-  diagrams = diagrams
+  const diagrams: IDiagram[] = _diagrams
     .map((diagram: any, idx: number) => {
       let {
         elements: [{ element: elements = [] } = {}] = [],
@@ -81,7 +87,7 @@ export async function getDiagrams (xml: string) {
       } = diagram
       let connectors
       ({ elements = [], connectors = [] } = elements
-        .map(({ $ }) => $)
+        .map(({ $ }: any) => $)
         .reduce((accumulator: any, element: any) => {
           let { subject = null, geometry = null as string | null } = element
           if (subject !== null) subject = mapId(subject)
@@ -102,6 +108,38 @@ export async function getDiagrams (xml: string) {
       return { id: idx, ...properties, ...project, elements, connectors }
     })
   return diagrams
+}
+
+export interface IElement {
+  id: string
+  parentId: string
+  type: string
+  name: string
+  seqno: string
+  geometry: number[]
+  style: string
+}
+
+export interface IConnector {
+  id: string
+  sourceId: string
+  targetId: string
+  type: string
+  subject: string
+  geometry: string
+  style: string
+}
+
+export interface IDiagram {
+  id: number
+  name: string
+  author: string
+  created: string
+  modified: string
+  type: string
+  version: string
+  connectors: IConnector[]
+  elements: IElement[]
 }
 
 export interface IXmlWorker {

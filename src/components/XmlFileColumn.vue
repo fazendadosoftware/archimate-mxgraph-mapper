@@ -35,26 +35,33 @@
     </search-input-component>
     <div class="border-b" />
     <div class="px-2 flex-1 flex flex-col space-y-2 overflow-auto">
-      <div
+      <button
         v-for="diagram in filteredDiagrams"
         :key="diagram.id"
+        v-wave
         class="transition-colors px-2 py-1 text-xs rounded-md cursor-pointer shadow-md border border-gray-400"
         :class="{
-          'bg-yellow-300': selectedDiagram !== null && selectedDiagram.id === diagram.id,
-          'bg-white hover:bg-yellow-200': selectedDiagram === null || selectedDiagram?.id !== diagram.id
+          'bg-yellow-300 bg-opacity-50 hover:bg-opacity-100': isSelected(diagram),
+          'bg-white hover:bg-yellow-100': !isSelected(diagram)
         }"
-        @click="selectedDiagram = diagram">
+        @click="toggleDiagramSelection(diagram)">
         {{ diagram.name }}
-      </div>
+      </button>
+    </div>
+    <div v-if="hasDiagrams" class="flex justify-center p-2 bg-gray-200 border-t border-gray-300">
+      <button
+        v-wave
+        class="inline-flex items-center justify-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-500 focus:outline-none focus:ring-0">
+        Import all diagrams
+      </button>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
 import SearchInput from './SearchInput.vue'
 import useDiagrams from '../composables/useDiagrams'
 
 const SearchInputComponent = SearchInput as any
-const { loadFile, loading, filteredDiagrams, selectedDiagram, searchQuery } = useDiagrams()
+const { loadFile, loading, filteredDiagrams, searchQuery, isSelected, toggleDiagramSelection, hasDiagrams } = useDiagrams()
 </script>
