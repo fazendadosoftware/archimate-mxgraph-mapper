@@ -1,8 +1,19 @@
 import { ref, unref, Ref, computed } from 'vue'
 import { Buffer } from 'buffer'
+import jwtDecode from 'jwt-decode'
+import { format } from 'date-fns'
 import useSwal from './useSwal'
 
 const { toast } = useSwal()
+
+const isAuthenticating = ref(false)
+const accessToken: Ref<null | string> = ref(null)
+const loading = ref(0)
+const isLoading = computed(() => unref(loading) > 0)
+const bookmarks: Ref<any[]> = ref([])
+const selectedBookmark: Ref<any> = ref(null)
+
+const getDate = (dateString: string = '') => format(Date.parse(dateString), 'MM/dd/yyyy HH:mm:ss')
 
 const getAccessToken = async (host: string, apitoken: string) => {
   if (typeof host !== 'string' || typeof apitoken !== 'string' || host === '' || apitoken === '') throw Error('invalid credentials')
@@ -26,14 +37,40 @@ const getAccessToken = async (host: string, apitoken: string) => {
   }
 }
 
-const isAuthenticating = ref(false)
-const accessToken: Ref<null | string> = ref(null)
+const fetchVisualizerBookmarks = async () => {
+  if (unref(accessToken) === null) throw Error('not authenticated')
+  const bearer = unref(accessToken) ?? ''
+  const { instanceUrl } = jwtDecode(bearer) as { instanceUrl: string }
+  const url = `${instanceUrl}/services/pathfinder/v1/bookmarks?bookmarkType=VISUALIZER`
+  const options = { method: 'GET', headers: { Authorization: `Bearer ${bearer}` } }
+  try {
+    loading.value++
+    const response = await fetch(url, options)
+    const { status } = response
+    const body = await response.json()
+    if (status === 200) {
+      const { data = [] } = body
+      bookmarks.value = data
+    } else {
+      console.error(body)
+      void toast.fire({
+        icon: 'error',
+        title: 'Error while fetching diagrams',
+        text: 'Check console for more details'
+      })
+      bookmarks.value = []
+    }
+  } finally {
+    loading.value--
+  }
+}
 
 const authenticate = async (host: string, apitoken: string) => {
   if (unref(isAuthenticating)) return
   try {
     isAuthenticating.value = true
     accessToken.value = await getAccessToken(host, apitoken)
+    await fetchVisualizerBookmarks()
   } catch (err) {
     console.error(err)
     void toast.fire({
@@ -54,7 +91,13 @@ const useWorkspace = () => {
     authenticate,
     isAuthenticating,
     isAuthenticated: computed(() => unref(accessToken) !== null),
-    logout
+    logout,
+    fetchVisualizerBookmarks,
+    isLoading,
+    bookmarks: computed(() => unref(bookmarks)),
+    filteredBookmarks: computed(() => unref(bookmarks)),
+    selectedBookmark,
+    getDate
   }
 }
 
