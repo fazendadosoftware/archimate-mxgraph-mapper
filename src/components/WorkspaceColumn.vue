@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col pt-2 px-2 space-y-2 bg-gradient-to-br from-gray-100 to-gray-50">
-    <authenticate-button />
+  <div class="flex flex-col space-y-2 bg-white">
+    <div class="border-b" />
     <div class="flex-1 flex flex-col rounded-md overflow-hidden">
       <div class="flex flex-col space-y-2 overflow-auto rounded-md">
         <div
@@ -17,12 +17,16 @@
         </div>
       </div>
     </div>
+    <div class="flex justify-center p-2 bg-gray-200 border-t border-gray-300">
+      <authenticate-button />
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import useWorkspace from '../composables/useWorkspace'
 import AuthenticateButton from './AuthenticateButton.vue'
+
 const { filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery } = useWorkspace()
 
 </script>

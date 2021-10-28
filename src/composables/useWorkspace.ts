@@ -93,7 +93,11 @@ const authenticate = async (host: string, apitoken: string) => {
   }
 }
 
-const logout = async () => { accessToken.value = null }
+const logout = async () => {
+  accessToken.value = null
+  bookmarkIndex.value = {}
+  selectedBookmark.value = null
+}
 
 const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
 
