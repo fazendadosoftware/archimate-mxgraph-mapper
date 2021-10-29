@@ -3,7 +3,7 @@ import '../helpers/mxArchimate3Shapes'
 import useSwal from './useSwal'
 import { IElement, IConnector } from '../workers/diagrams'
 import styles from '../assets/data/styles.json'
-import { ref, unref, Ref } from 'vue'
+import { ref, unref, Ref, computed } from 'vue'
 
 const { toast } = useSwal()
 
@@ -95,8 +95,10 @@ const useMXGraph = (props: UseMXGraphProps) => {
   const undoListener = (sender: any, evt: any) => undoManager.undoableEditHappened(evt.getProperty('edit'))
   const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
   return {
-    drawGraph: (data: unknown) => drawGraph(drawGraphProps, data)
+    drawGraph: (data: unknown) => drawGraph(drawGraphProps, data),
+    styleIndex: computed(() => styleIndex)
   }
 }
 
 export default useMXGraph
+export { styleIndex }

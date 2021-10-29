@@ -126,7 +126,8 @@ const useWorkspace = () => {
     selectedBookmark: computed(() => unref(selectedBookmark)),
     toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
     isSelected,
-    getDate
+    getDate,
+    jwtClaims: computed(() => unref(accessToken) === null ? null : jwtDecode<any>(unref(accessToken) ?? ''))
   }
 }
 

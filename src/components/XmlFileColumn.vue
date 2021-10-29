@@ -38,7 +38,6 @@
       <button
         v-for="diagram in filteredDiagrams"
         :key="diagram.id"
-        v-wave
         class="transition-colors px-2 py-1 text-xs rounded-md cursor-pointer shadow-md border border-gray-400"
         :class="{
           'bg-yellow-300 bg-opacity-50 hover:bg-opacity-100': isSelected(diagram),

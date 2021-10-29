@@ -1,14 +1,14 @@
 <template>
-  <div class="flex flex-col pt-2 space-y-2 bg-white">
-    <div class="flex">
-      <search-bar
-        v-model="searchQuery"
-        class="mx-2"
-        placeholder="Search workspace diagrams" />
-    </div>
-    <div class="border-b" />
+  <div class="flex flex-col pt-2 px-2 space-y-2 bg-white">
+    <authenticate-button />
+    <search-input
+      v-if="isAuthenticated"
+      v-model="searchQuery"
+      :refreshing="isLoading"
+      :placeholder="'Search workspace diagrams'"
+      @refresh="() => fetchVisualizerBookmarks()" />
     <div class="flex-1 flex flex-col rounded-md overflow-hidden">
-      <div class="px-2 flex-1 flex flex-col space-y-2 overflow-auto">
+      <div class="flex-1 flex flex-col space-y-2 overflow-auto">
         <div
           v-for="bookmark in filteredBookmarks.filter((bookmark: any) => bookmarkHasXml(bookmark))"
           :key="bookmark.id"
@@ -31,18 +31,18 @@
         </div>
       </div>
     </div>
-    <div class="flex justify-center p-2 bg-gray-200 border-t border-gray-300">
-      <authenticate-button />
-    </div>
+    <current-workspace class="-mx-2 px-2 py-2 bg-gray-200" />
   </div>
 </template>
 
 <script lang="ts" setup>
 import useWorkspace from '../composables/useWorkspace'
 import SearchBar from './SearchBar.vue'
+import SearchInput from './SearchInput.vue'
 import AuthenticateButton from './AuthenticateButton.vue'
+import CurrentWorkspace from './CurrentWorkspace.vue'
 
-const { filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery } = useWorkspace()
+const { isAuthenticated, filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery, fetchVisualizerBookmarks, isLoading } = useWorkspace()
 
 const bookmarkHasXml = (bookmark: any) => !!bookmark?.state?.graphXml
 </script>
