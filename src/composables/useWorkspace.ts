@@ -57,7 +57,6 @@ const fetchVisualizerBookmarks = async () => {
     const body = await response.json()
     if (status === 200) {
       const { data = [] } = body
-      console.log(data.map(({ id, ...bookmark }: any) => ({ id, bookmark })))
       bookmarkIndex.value = data
         .reduce((accumulator: any, bookmark: any) => ({ ...accumulator, [bookmark.id]: bookmark }), {})
     } else {

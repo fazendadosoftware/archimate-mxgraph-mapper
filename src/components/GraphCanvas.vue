@@ -6,17 +6,28 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, Ref, unref } from 'vue'
 import useDiagrams from '../composables/useDiagrams'
+import useWorkspace from '../composables/useWorkspace'
 import useMXGraph from '../composables/useMXGraph'
+import { IDiagram } from '../workers/diagrams'
 
 const graph = ref(null)
 const outline = ref(null)
+const chartData: Ref<any> = ref(null)
 
 const { drawGraph } = useMXGraph({ graph, outline })
-const { selectedDiagram } = useDiagrams()
+const { selectedDiagram, toggleDiagramSelection } = useDiagrams()
+const { selectedBookmark, toggleBookmarkSelection } = useWorkspace()
 
-watch([selectedDiagram], ([selectedDiagram]) => {
-  drawGraph(selectedDiagram)
+watch(selectedDiagram, selectedDiagram => {
+  if (unref(selectedBookmark) !== null) toggleBookmarkSelection(selectedBookmark)
+  chartData.value = selectedDiagram
 })
+watch(selectedBookmark, selectedBookmark => {
+  if (unref(selectedDiagram) !== null) toggleDiagramSelection(unref(selectedDiagram) as IDiagram)
+  chartData.value = selectedBookmark?.state?.graphXml ?? null
+  console.log('SLEECTED BOOKMARK', selectedBookmark)
+})
+watch(chartData, chartData => drawGraph(chartData))
 </script>
