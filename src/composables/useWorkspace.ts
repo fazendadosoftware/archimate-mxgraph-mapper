@@ -123,7 +123,7 @@ const useWorkspace = () => {
           }, [])
       return filteredDiagrams
     }),
-    selectedBookmark,
+    selectedBookmark: computed(() => unref(selectedBookmark)),
     toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
     isSelected,
     getDate

@@ -1,15 +1,16 @@
 <template>
-  <div class="flex flex-col space-y-2 bg-white">
+  <div class="flex flex-col pt-2 space-y-2 bg-white">
     <div class="flex">
       <search-bar
         v-model="searchQuery"
-        class="m-2"
+        class="mx-2"
         placeholder="Search workspace diagrams" />
     </div>
+    <div class="border-b" />
     <div class="flex-1 flex flex-col rounded-md overflow-hidden">
-      <div class="flex flex-col space-y-2 overflow-auto rounded-md">
+      <div class="px-2 flex-1 flex flex-col space-y-2 overflow-auto">
         <div
-          v-for="bookmark in filteredBookmarks"
+          v-for="bookmark in filteredBookmarks.filter((bookmark: any) => bookmarkHasXml(bookmark))"
           :key="bookmark.id"
           class="transition-colors px-2 py-1 text-xs rounded-md cursor-pointer shadow-md border border-gray-400"
           :class="{

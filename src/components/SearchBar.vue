@@ -2,14 +2,15 @@
   <div
     class="w-full rounded-md border relative py-2 pl-7 pr-6 text-xs"
     :class="{
-      'cursor-not-allowed': disabled
+      'cursor-not-allowed': disabled,
+      'cursor-text': !disabled
     }"
     @click="input?.focus()">
     <span
       class="absolute top-1/2 left-1 transform -translate-y-1/2 transition-colors"
       :class="{
         'text-gray-500': isFocused || modelValue !== '',
-        'text-gray-300': !isFocused
+        'text-gray-300': false
       }">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
@@ -19,7 +20,7 @@
       ref="input"
       :value="modelValue"
       :disabled="disabled"
-      class="w-full outline-none cursor-default"
+      class="w-full outline-none cursor-text"
       :class="{
         'cursor-not-allowed': disabled
       }"

@@ -20,6 +20,7 @@
     "date-fns": "^2.25.0",
     "flexsearch": "^0.7.21",
     "jwt-decode": "^3.1.2",
+    "lodash.isequal": "^4.5.0",
     "mxgraph": "^4.2.2",
     "stream": "^0.0.2",
     "sweetalert2": "^11.1.9",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/flexsearch": "^0.7.1",
+    "@types/lodash.isequal": "^4.5.5",
     "@types/xml2js": "^0.4.9",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@vitejs/plugin-vue": "^1.9.4",
