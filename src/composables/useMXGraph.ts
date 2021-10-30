@@ -96,7 +96,8 @@ const useMXGraph = (props: UseMXGraphProps) => {
   const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
   return {
     drawGraph: (data: unknown) => drawGraph(drawGraphProps, data),
-    styleIndex: computed(() => styleIndex)
+    styleIndex: computed(() => styleIndex),
+    undoManager
   }
 }
 

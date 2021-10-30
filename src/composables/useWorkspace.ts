@@ -3,6 +3,7 @@ import { Buffer } from 'buffer'
 import jwtDecode from 'jwt-decode'
 import { format } from 'date-fns'
 import { Index } from 'flexsearch'
+import debounce from 'lodash.debounce'
 import useSwal from './useSwal'
 
 const { toast } = useSwal()
@@ -14,6 +15,8 @@ const isLoading = computed(() => unref(loading) > 0)
 const bookmarkIndex: Ref<Record<string, any>> = ref({})
 const selectedBookmark: Ref<any> = ref(null)
 const ftsBookmarkIndex = ref(new Index())
+const savingBookmark = ref(false)
+const factSheetIndex: any = ref(null)
 
 watch(bookmarkIndex, bookmarkIndex => {
   ftsBookmarkIndex.value = new Index()
@@ -94,12 +97,84 @@ const authenticate = async (host: string, apitoken: string) => {
 
 const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
 
+const saveBookmark = async () => {
+  console.log('SAVE BOOKMARK')
+}
+
+const fetchWorkspaceDataModel = async () => {
+  const bearer = unref(accessToken)
+  if (bearer === null || unref(jwtClaims) === null) throw Error('not authenticated')
+  const { instanceUrl }: { instanceUrl: string } = unref(jwtClaims)
+  const options = { method: 'GET', headers: { Authorization: `Bearer ${bearer}` } }
+  const response = await fetch(`${instanceUrl}/services/pathfinder/v1/models/dataModel`, options)
+  const { status } = response
+  const body = await response.json()
+  if (status === 200) return body.data
+  else {
+    throw Error(JSON.stringify(body))
+  }
+}
+
+const buildFactSheetIndex = async (selectedDiagram: any) => {
+  factSheetIndex.value = null
+  let query = `
+        query($externalIds: [String!]) {
+          allFactSheets(filter: { externalIds: $externalIds }) {
+            edges {
+              node {
+                id
+                type
+                name
+                {{factSheetTypeExternalIdPlaceholder}}
+              }
+            }
+          }
+        }
+      `
+  const bearer = unref(accessToken)
+  if (bearer === null || unref(jwtClaims) === null) throw Error('not authenticated')
+  const { instanceUrl }: { instanceUrl: string } = unref(jwtClaims)
+  const factSheetTypes = await fetchWorkspaceDataModel()
+    .then(dataModel => Object.keys(dataModel.factSheets))
+  const factSheetTypeExternalIdFragment = factSheetTypes
+    .map(factSheetType => `...on ${factSheetType}{externalId{externalId}}`)
+    .join(' ')
+  query = query.replace('{{factSheetTypeExternalIdPlaceholder}}', factSheetTypeExternalIdFragment)
+  const externalIds = unref(selectedDiagram).elements.map(({ id }: { id: string }) => `externalId/${id}`)
+  const options = {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables: { externalIds } })
+  }
+  const response = await fetch(`${instanceUrl}/services/pathfinder/v1/graphql`, options)
+  const { status } = response
+  const body = await response.json()
+  if (status === 200) {
+    const { data: { allFactSheets: { edges = [] } } } = body
+    const fsIndex = edges
+      .reduce((accumulator: any, { node: factSheet }: any) => {
+        let { externalId: { externalId } } = factSheet
+        if (typeof externalId === 'string') externalId = externalId.toUpperCase()
+        accumulator[externalId] = { ...factSheet, externalId }
+        return accumulator
+      }, {})
+    factSheetIndex.value = fsIndex
+  } else {
+    factSheetIndex.value = null
+    throw Error(`${JSON.stringify(body)}`)
+  }
+}
+
+const debouncedBuildFactSheetIndex = debounce(async (selectedDiagram: any) => await buildFactSheetIndex(selectedDiagram), 500)
+
 const logout = async (searchQuery?: Ref<string>) => {
   accessToken.value = null
   bookmarkIndex.value = {}
   selectedBookmark.value = null
   if (searchQuery !== undefined) searchQuery.value = ''
 }
+
+const jwtClaims = computed(() => unref(accessToken) === null ? null : jwtDecode<any>(unref(accessToken) ?? ''))
 
 const useWorkspace = () => {
   const searchQuery = ref('')
@@ -127,7 +202,11 @@ const useWorkspace = () => {
     toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
     isSelected,
     getDate,
-    jwtClaims: computed(() => unref(accessToken) === null ? null : jwtDecode<any>(unref(accessToken) ?? ''))
+    jwtClaims,
+    savingBookmark: computed(() => unref(savingBookmark)),
+    saveBookmark,
+    factSheetIndex: computed(() => unref(factSheetIndex)),
+    buildFactSheetIndex: (diagram: any) => { factSheetIndex.value = null; debouncedBuildFactSheetIndex(diagram) }
   }
 }
 
