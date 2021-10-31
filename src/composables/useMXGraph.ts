@@ -9,7 +9,7 @@ const { toast } = useSwal()
 
 const styleIndex: Record<string, string> = styles
 
-const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent, mxUtils: { getXml } } = mxgraph
+const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent } = mxgraph
 
 interface DrawGraphProps {
   graphContainer: Ref<Element | null>
@@ -82,6 +82,12 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
   }
 }
 
+const getXml = (graph: any): string => {
+  if (unref(graph) === null) throw Error('invalid graph')
+  const xml = mxUtils.getXml(new MXCodec().encode(unref(graph).getModel()))
+  return xml
+}
+
 interface UseMXGraphProps {
   graph: Ref<Element | null>
   outline: Ref<Element | null>
@@ -98,6 +104,7 @@ const useMXGraph = (props: UseMXGraphProps) => {
   const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
   return {
     drawGraph: (data: unknown) => drawGraph(drawGraphProps, data),
+    getXml: () => getXml(graph),
     styleIndex: computed(() => styleIndex),
     undoManager
   }

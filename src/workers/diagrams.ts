@@ -133,6 +133,7 @@ export interface IConnector {
 export interface IDiagram {
   id: number
   name: string
+  documentation: string
   author: string
   created: string
   modified: string

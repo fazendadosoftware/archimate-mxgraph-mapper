@@ -4,7 +4,9 @@ import jwtDecode from 'jwt-decode'
 import { format } from 'date-fns'
 import { Index } from 'flexsearch'
 import debounce from 'lodash.debounce'
+import { parseStringPromise, Builder } from 'xml2js'
 import useSwal from './useSwal'
+import { IDiagram } from '../workers/diagrams'
 
 const { toast } = useSwal()
 
@@ -15,7 +17,8 @@ const isLoading = computed(() => unref(loading) > 0)
 const bookmarkIndex: Ref<Record<string, any>> = ref({})
 const selectedBookmark: Ref<any> = ref(null)
 const ftsBookmarkIndex = ref(new Index())
-const savingBookmark = ref(false)
+const savingBookmark = ref(0)
+const isSavingBookmark = computed(() => unref(savingBookmark) > 0)
 const factSheetIndex: any = ref(null)
 
 watch(bookmarkIndex, bookmarkIndex => {
@@ -97,8 +100,89 @@ const authenticate = async (host: string, apitoken: string) => {
 
 const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
 
-const saveBookmark = async () => {
-  console.log('SAVE BOOKMARK')
+const enrichXml = async (diagram: IDiagram, xml: string): Promise<string> => {
+  if (unref(factSheetIndex) === null) await buildFactSheetIndex(diagram)
+  const graph = await parseStringPromise(xml)
+  const { mxGraphModel: { root: [{ mxCell: cells = [] } = { mxCell: [] }] = [] } } = graph
+  const { mxCell, object } = cells
+    .reduce((accumulator: any, cell: any) => {
+      const { $: { id = null } } = cell
+      const { [id]: factSheet = null } = factSheetIndex
+      if (factSheet === null) accumulator.mxCell.push(cell)
+      else {
+        delete cell.$.id
+        delete cell.$.value
+        accumulator.object.push({
+          $: {
+            type: 'factSheet',
+            autoSize: 1,
+            layoutType: 'auto',
+            collapsed: 1,
+            resourceId: factSheet.id,
+            label: factSheet.name,
+            resource: factSheet.type,
+            subType: '',
+            factSheetId: factSheet.id,
+            id: id
+          },
+          mxCell: cell
+        })
+      }
+      return accumulator
+    }, { mxCell: [], object: [] })
+  const enrichedGraph = {
+    mxGraphModel: {
+      root: {
+        mxCell,
+        object
+      }
+    }
+  }
+  const enrichedXml = new Builder({ headless: true }).buildObject(enrichedGraph)
+  return enrichedXml
+}
+
+const saveBookmark = async (diagram: IDiagram, xml: string) => {
+  if (unref(accessToken) === null) throw Error('not authenticated')
+  const bearer = unref(accessToken) ?? ''
+  const { instanceUrl } = jwtDecode<{ instanceUrl: string }>(bearer)
+  const url = `${instanceUrl}/services/pathfinder/v1/bookmarks`
+
+  const graphXml = await enrichXml(diagram, xml)
+  const { name, documentation: description = '' } = diagram
+  const bookmark = { groupKey: 'freedraw', description, name, type: 'VISUALIZER', state: { graphXml } }
+
+  const options = {
+    method: 'POST',
+    body: JSON.stringify(bookmark),
+    headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' }
+  }
+
+  try {
+    savingBookmark.value++
+    const response = await fetch(url, options)
+    const { ok, status } = response
+    if (ok) {
+      const { data: bookmark } = await response.json()
+      void toast.fire({
+        icon: 'success',
+        title: 'Saved bookmark',
+        text: `${diagram.name} was saved in workspace`
+      })
+      console.log('BOOKMARK', bookmark)
+      return bookmark
+    }
+    throw Error(`${status} while creating bookmark`)
+  } catch (err) {
+    void toast.fire({
+      icon: 'error',
+      title: 'Error while saving bookmark',
+      text: 'Check console for more details'
+    })
+    console.error(err, diagram)
+  } finally {
+    savingBookmark.value--
+  }
 }
 
 const fetchWorkspaceDataModel = async () => {
@@ -115,7 +199,7 @@ const fetchWorkspaceDataModel = async () => {
   }
 }
 
-const buildFactSheetIndex = async (selectedDiagram: any) => {
+const buildFactSheetIndex = async (selectedDiagram: IDiagram) => {
   factSheetIndex.value = null
   let query = `
         query($externalIds: [String!]) {
@@ -203,10 +287,10 @@ const useWorkspace = () => {
     isSelected,
     getDate,
     jwtClaims,
-    savingBookmark: computed(() => unref(savingBookmark)),
     saveBookmark,
+    isSavingBookmark,
     factSheetIndex: computed(() => unref(factSheetIndex)),
-    buildFactSheetIndex: (diagram: any) => { factSheetIndex.value = null; debouncedBuildFactSheetIndex(diagram) }
+    buildFactSheetIndex: (diagram: any) => { factSheetIndex.value = null; void debouncedBuildFactSheetIndex(diagram) }
   }
 }
 

@@ -54,13 +54,13 @@
         </button>
         <button
           type="button"
-          :disabled="!isAuthenticated || savingBookmark"
+          :disabled="!isAuthenticated || isSavingBookmark || selectedDiagram === null"
           class="-ml-px relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-0 focus:border-0 transition-opacity"
           :class="{
-            'opacity-50 cursor-default': !isAuthenticated || savingBookmark,
-            'opacity-100 cursor-pointer': isAuthenticated && !savingBookmark
+            'opacity-50 cursor-default': !isAuthenticated || isSavingBookmark,
+            'opacity-100 cursor-pointer': isAuthenticated && !isSavingBookmark
           }"
-          @click="saveBookmark">
+          @click="save()">
           <span class="sr-only">SaveBookmark</span>
           <!-- Heroicon name: solid/reply -->
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform -rotate-90" viewBox="0 0 20 20" fill="currentColor">
@@ -97,7 +97,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, Ref, unref } from 'vue'
+import { ref, watch, unref } from 'vue'
 import ElementList from './ElementList.vue'
 import ConnectorList from './ConnectorList.vue'
 import StyleList from './StyleList.vue'
@@ -111,11 +111,10 @@ import pkg from '../../package.json'
 const { name, version } = pkg
 const graph = ref(null)
 const outline = ref(null)
-const meta: Ref<any> = ref(null)
 
-const { drawGraph, undoManager } = useMXGraph({ graph, outline })
+const { drawGraph, undoManager, getXml } = useMXGraph({ graph, outline })
 const { selectedDiagram, toggleDiagramSelection } = useDiagrams()
-const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, savingBookmark, saveBookmark, buildFactSheetIndex } = useWorkspace()
+const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, isSavingBookmark, saveBookmark, buildFactSheetIndex, fetchVisualizerBookmarks } = useWorkspace()
 
 watch([isAuthenticated, selectedDiagram], ([isAuthenticated, selectedDiagram]) => {
   if (isAuthenticated && selectedDiagram !== null) buildFactSheetIndex(selectedDiagram)
@@ -132,10 +131,7 @@ watch(selectedBookmark, () => {
 watch([selectedDiagram, selectedBookmark], ([selectedDiagram, selectedBookmark]) => {
   if (selectedBookmark?.state?.graphXml) view.value = 'diagram'
   const chartData = selectedDiagram ?? selectedBookmark?.state?.graphXml
-  if (chartData !== undefined) {
-    meta.value = selectedDiagram ?? selectedBookmark
-    drawGraph(chartData)
-  }
+  if (chartData !== undefined) drawGraph(chartData)
 })
 
 const viewTabs = [
@@ -146,4 +142,11 @@ const viewTabs = [
   { key: 'factSheetList', label: 'FactSheet list' }
 ]
 const view = ref('diagram')
+
+const save = async () => {
+  const diagram = unref(selectedDiagram)
+  if (diagram === null) return
+  await saveBookmark(diagram, getXml())
+  await fetchVisualizerBookmarks()
+}
 </script>
