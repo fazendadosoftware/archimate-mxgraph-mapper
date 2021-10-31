@@ -91,8 +91,10 @@ const useMXGraph = (props: UseMXGraphProps) => {
   const graph = ref(null)
   const outline = ref(null)
   const { graph: graphContainer, outline: outlineContainer } = props
-  const undoManager = new MXUndoManager()
-  const undoListener = (sender: any, evt: any) => undoManager.undoableEditHappened(evt.getProperty('edit'))
+  const undoManager = ref(new MXUndoManager())
+  const undoListener = (sender: any, evt: any) => {
+    unref(undoManager).undoableEditHappened(evt.getProperty('edit'))
+  }
   const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
   return {
     drawGraph: (data: unknown) => drawGraph(drawGraphProps, data),
