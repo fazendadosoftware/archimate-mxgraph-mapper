@@ -37,24 +37,24 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
   else {
     try {
       if (unref(graph) !== null) { unref(graph).destroy(); unref(undoManager).clear() }
-      graph.value = new MXGraph(graphContainerEl)
-      unref(graph).getModel().beginUpdate()
+      const _graph = new MXGraph(graphContainerEl)
+      _graph.getModel().beginUpdate()
       try {
         if (data === null) {
           console.log('null')
         } else if (typeof data === 'string') {
           const doc = mxUtils.parseXml(data)
           const codec = new MXCodec(doc)
-          codec.decode(doc.documentElement, unref(graph).getModel())
+          codec.decode(doc.documentElement, _graph.getModel())
         } else {
           const { elements = [], connectors = [] } = data as {elements: IElement[], connectors: IConnector[]}
           const vertexIndex: any = {}
-          const defaultParent = unref(graph).getDefaultParent()
+          const defaultParent = _graph.getDefaultParent()
 
           elements
             .forEach((element: IElement) => {
               const { id, parentId, name, type, geometry } = element
-              vertexIndex[id] = unref(graph).insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(type))
+              vertexIndex[id] = _graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(type))
             })
 
           connectors
@@ -62,17 +62,18 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
               const { id, type, sourceId, targetId } = connector
               const sourceVertex = vertexIndex[sourceId]
               const targetVertex = vertexIndex[targetId]
-              unref(graph).insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(type))
+              _graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(type))
             })
         }
       } finally {
-        unref(graph).getModel().endUpdate()
+        _graph.getModel().endUpdate()
+        graph.value = _graph
       }
       unref(outline)?.outline?.destroy()
       if (data !== null) {
-        outline.value = new MXOutline(unref(graph), outlineContainerEl)
-        unref(graph).getModel().addListener(mxEvent.UNDO, undoListener)
-        unref(graph).getView().addListener(mxEvent.UNDO, undoListener)
+        outline.value = new MXOutline(_graph, outlineContainerEl)
+        _graph.getModel().addListener(mxEvent.UNDO, undoListener)
+        _graph.getView().addListener(mxEvent.UNDO, undoListener)
       }
     } catch (error) {
       console.error(error)
