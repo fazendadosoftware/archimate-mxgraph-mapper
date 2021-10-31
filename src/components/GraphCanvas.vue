@@ -97,7 +97,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, unref } from 'vue'
+import { ref, watch, unref, onBeforeUnmount } from 'vue'
 import ElementList from './ElementList.vue'
 import ConnectorList from './ConnectorList.vue'
 import StyleList from './StyleList.vue'
@@ -112,7 +112,7 @@ const { name, version } = pkg
 const graph = ref(null)
 const outline = ref(null)
 
-const { drawGraph, undoManager, getXml } = useMXGraph({ graph, outline })
+const { drawGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
 const { selectedDiagram, toggleDiagramSelection } = useDiagrams()
 const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, isSavingBookmark, saveBookmark, buildFactSheetIndex, fetchVisualizerBookmarks } = useWorkspace()
 
@@ -142,10 +142,21 @@ const viewTabs = [
   { key: 'factSheetList', label: 'FactSheet list' }
 ]
 const view = ref('diagram')
+
 const save = async () => {
   const diagram = unref(selectedDiagram)
   if (diagram === null) return
   await saveBookmark(diagram, getXml())
   await fetchVisualizerBookmarks()
 }
+// capture CTRL + mousewheel events for zooming the graph
+const wheelListener = (evt: WheelEvent) => {
+  if (unref(graphInstance) !== null && evt.ctrlKey) {
+    const zoomIn = evt.deltaY === 100
+    zoomIn ? unref(graphInstance)?.zoomIn() : unref(graphInstance)?.zoomOut()
+  }
+}
+
+const listener = window.addEventListener('wheel', wheelListener)
+onBeforeUnmount(() => window.removeEventListener('wheel', wheelListener))
 </script>

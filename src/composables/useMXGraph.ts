@@ -98,7 +98,7 @@ interface UseMXGraphProps {
 }
 
 const useMXGraph = (props: UseMXGraphProps) => {
-  const graph = ref(null)
+  const graph: Ref<any> = ref(null)
   const outline = ref(null)
   const { graph: graphContainer, outline: outlineContainer } = props
   const undoManager = ref(new MXUndoManager())
@@ -110,7 +110,8 @@ const useMXGraph = (props: UseMXGraphProps) => {
     drawGraph: (data: unknown) => drawGraph(drawGraphProps, data),
     getXml: () => getXml(graph),
     styleIndex: computed(() => styleIndex),
-    undoManager
+    undoManager,
+    graphInstance: computed(() => unref(graph))
   }
 }
 
