@@ -142,7 +142,6 @@ const viewTabs = [
   { key: 'factSheetList', label: 'FactSheet list' }
 ]
 const view = ref('diagram')
-
 const save = async () => {
   const diagram = unref(selectedDiagram)
   if (diagram === null) return

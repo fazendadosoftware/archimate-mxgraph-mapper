@@ -36,7 +36,7 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
   if (mxClient.isBrowserSupported() === false) mxUtils.error('Browser is not supported!', 200, false)
   else {
     try {
-      if (unref(graph) !== null) { unref(graph).destroy(); undoManager.clear() }
+      if (unref(graph) !== null) { unref(graph).destroy(); unref(undoManager).clear() }
       graph.value = new MXGraph(graphContainerEl)
       unref(graph).getModel().beginUpdate()
       try {
@@ -49,17 +49,20 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
         } else {
           const { elements = [], connectors = [] } = data as {elements: IElement[], connectors: IConnector[]}
           const vertexIndex: any = {}
+          const defaultParent = unref(graph).getDefaultParent()
+
           elements
             .forEach((element: IElement) => {
               const { id, parentId, name, type, geometry } = element
-              vertexIndex[id] = unref(graph).insertVertex(vertexIndex[parentId] ?? unref(graph).getDefaultParent(), id, name, ...geometry, getStyle(type))
+              vertexIndex[id] = unref(graph).insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(type))
             })
+
           connectors
             .forEach((connector: IConnector) => {
               const { id, type, sourceId, targetId } = connector
               const sourceVertex = vertexIndex[sourceId]
               const targetVertex = vertexIndex[targetId]
-              unref(graph).insertEdge(unref(graph).getDefaultParent(), id, '', sourceVertex, targetVertex, getStyle(type))
+              unref(graph).insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(type))
             })
         }
       } finally {
