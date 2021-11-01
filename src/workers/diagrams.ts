@@ -2,10 +2,16 @@ import { Parser } from 'xml2js'
 import { expose } from 'comlink'
 const { parseStringPromise } = new Parser()
 
-const sortElements = (elementA = {} as any, elementB = {} as any) => {
-  if ((elementA.id === elementB.parentId) || (elementA.parentId === null && elementB.parentId !== null)) return -1
-  else if ((elementA.parentId === elementB.id) || (elementB.parentId === null && elementA.parentId !== null)) return 1
-  else return 0
+const sortElements = (elementA: IElement, elementB: IElement, connectorTree: Record<string, number>) => {
+  const depthA = connectorTree[elementA.id] ?? 0
+  const depthB = connectorTree[elementB.id] ?? 0
+  let parentScore = 0
+  if ((elementA.id === elementB.parentId) || (elementA.parentId === null && elementB.parentId !== null)) parentScore = 1
+  else if ((elementA.parentId === elementB.id) || (elementB.parentId === null && elementA.parentId !== null)) parentScore = -1
+  if (parentScore !== 0) return parentScore
+
+  const depthScore = depthA > depthB ? 1 : depthA < depthB ? -1 : 0
+  return depthScore
 }
 
 const getParentIndex = (document: any): Record<string, IElement> => {
@@ -104,14 +110,36 @@ export async function getDiagrams (xml: string) {
           else if (subject in connectorIndex) accumulator.connectors.push({ ...connectorIndex[subject], ...element })
           return accumulator
         }, { elements: [], connectors: [] }))
-      elements = elements.sort(sortElements)
-      if (properties.name === 'ComFox - Single Application Component') {
-        console.log('ELEMENTS', elements)
-        console.log('CONNECTORS', connectors)
-      }
+      const connectorTree = buildConnectorTree(connectors)
+      elements = elements.sort((A: IElement, B: IElement) => sortElements(A, B, connectorTree))
       return { id: idx, ...properties, ...project, elements, connectors }
     })
   return diagrams
+}
+
+const buildConnectorTree = (connectors: IConnector[]) => {
+  const targetIdIndex = connectors
+    .reduce((accumulator: Record<string, string[]>, connector) => {
+      const { targetId, sourceId } = connector
+      if (accumulator[targetId] === undefined) accumulator[targetId] = []
+      accumulator[targetId].push(sourceId)
+      return accumulator
+    }, {})
+
+  const getDepth = (targetId: string, targetIdIndex: Record<string, string[]>, depth: number = -1): any => {
+    depth++
+    const sourceIds = targetIdIndex[targetId]
+    if (sourceIds === undefined) return depth
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    else return Math.max(...sourceIds.map(id => getDepth(id, targetIdIndex, depth)))
+  }
+
+  const index = Object.entries(targetIdIndex)
+    .reduce((accumulator: Record<string, number>, [targetId, sourceIds]) => {
+      accumulator[targetId] = getDepth(targetId, targetIdIndex)
+      return accumulator
+    }, {})
+  return index
 }
 
 export interface IElement {
