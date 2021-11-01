@@ -105,6 +105,10 @@ export async function getDiagrams (xml: string) {
           return accumulator
         }, { elements: [], connectors: [] }))
       elements = elements.sort(sortElements)
+      if (properties.name === 'ComFox - Single Application Component') {
+        console.log('ELEMENTS', elements)
+        console.log('CONNECTORS', connectors)
+      }
       return { id: idx, ...properties, ...project, elements, connectors }
     })
   return diagrams
