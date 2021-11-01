@@ -1,7 +1,7 @@
 import mxgraph from '../helpers/mxgraph-shims'
 import '../helpers/mxArchimate3Shapes'
 import useSwal from './useSwal'
-import { IElement, IConnector } from '../workers/diagrams'
+import { IElement, IConnector, IDiagram } from '../workers/diagrams'
 import styles from '../assets/data/styles.json'
 import { ref, unref, Ref, computed } from 'vue'
 
@@ -115,5 +115,38 @@ const useMXGraph = (props: UseMXGraphProps) => {
   }
 }
 
+const generateXmlFromDiagram = async (diagram: IDiagram): Promise<string> => {
+  const el = document.createElement('div')
+  const graph = new MXGraph(el)
+  graph.getModel().beginUpdate()
+  try {
+    const { elements = [], connectors = [] } = diagram
+    const vertexIndex: any = {}
+    const defaultParent = graph.getDefaultParent()
+
+    elements
+      .forEach((element: IElement) => {
+        const { id, parentId, name, type, geometry } = element
+        vertexIndex[id] = graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(type))
+      })
+
+    connectors
+      .forEach((connector: IConnector) => {
+        const { id, type, sourceId, targetId } = connector
+        const sourceVertex = vertexIndex[sourceId]
+        const targetVertex = vertexIndex[targetId]
+        graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(type))
+      })
+  } finally {
+    graph.getModel().endUpdate()
+  }
+  const xml = getXml(graph)
+
+  graph.destroy()
+  el.remove()
+
+  return xml
+}
+
 export default useMXGraph
-export { styleIndex }
+export { styleIndex, generateXmlFromDiagram }

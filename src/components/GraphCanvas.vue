@@ -149,6 +149,7 @@ const save = async () => {
   await saveBookmark(diagram, getXml())
   await fetchVisualizerBookmarks()
 }
+
 // capture CTRL + mousewheel events for zooming the graph
 const wheelListener = (evt: WheelEvent) => {
   if (unref(graphInstance) !== null && evt.ctrlKey) {

@@ -6,3 +6,4 @@ declare module '*.vue' {
 }
 
 declare module 'mxgraph'
+declare module '@aacassandra/vue3-progressbar'

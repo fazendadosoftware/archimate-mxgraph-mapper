@@ -47,23 +47,86 @@
         {{ diagram.name }}
       </button>
     </div>
-    <div v-if="hasDiagrams" class="flex justify-center p-2 bg-gray-200 border-t border-gray-300">
+    <div v-if="hasDiagrams && isImported === false" class="flex justify-center p-2 bg-gray-200 border-t border-gray-300">
       <button
         v-if="isAuthenticated"
         v-wave
-        class="inline-flex items-center justify-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-500 focus:outline-none focus:ring-0">
-        Import all diagrams
+        class="inline-flex items-center justify-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-500 focus:outline-none focus:ring-0"
+        :class="{
+          'opacity-50 pointer-events-none': isImporting
+        }"
+        @click="importAll">
+        {{ isImporting ? `Importing... ${percentageComplete}` : `Import ${filteredDiagrams.length} diagrams` }}
       </button>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { unref, onBeforeUnmount, ref, computed } from 'vue'
+import Bottleneck from 'bottleneck'
 import SearchInput from './SearchInput.vue'
 import useDiagrams from '../composables/useDiagrams'
 import useWorkspace from '../composables/useWorkspace'
+import { generateXmlFromDiagram } from '../composables/useMXGraph'
+import useSwal from '../composables/useSwal'
 
 const SearchInputComponent = SearchInput as any
 const { loadFile, loading, filteredDiagrams, searchQuery, isSelected, toggleDiagramSelection, hasDiagrams } = useDiagrams()
-const { isAuthenticated } = useWorkspace()
+const { isAuthenticated, saveBookmark, fetchVisualizerBookmarks } = useWorkspace()
+const { toast } = useSwal()
+
+const limiter = new Bottleneck({ maxConcurrent: 8 })
+const jobCount = ref(0)
+const percentageComplete = computed(() => Math.round((unref(jobCount) / unref(filteredDiagrams).length) * 100) + '%')
+const isImporting = ref(false)
+const isImported = ref(false)
+
+limiter.on('error', err => {
+  console.error(err)
+  toast.fire({
+    icon: 'error',
+    title: 'Error while uploading diagram',
+    text: 'Check console for more details'
+  })
+})
+
+limiter.on('failed', async (error, jobInfo) => {
+  const id = jobInfo.options.id
+  console.warn(`Job ${id} failed: ${error}`)
+  if (jobInfo.retryCount === 0) { // Here we only retry once
+    console.log(`Retrying job ${id} in 25ms!`)
+    return 25
+  }
+})
+
+// limiter.on('received', () => jobCount.value++)
+
+limiter.on('done', () => jobCount.value++)
+
+onBeforeUnmount(() => limiter.removeAllListeners())
+
+const importAll = async () => {
+  isImporting.value = true
+  jobCount.value = 0
+
+  try {
+    const mappedDiagrams = await Promise.all(
+      unref(filteredDiagrams)
+        .map(async diagram => ({ diagram, xml: await generateXmlFromDiagram(diagram) }))
+    )
+    await Promise.all(
+      mappedDiagrams.map(({ diagram, xml }) => limiter.schedule({ id: `${diagram.id}` }, () => saveBookmark(diagram, xml, true)))
+    )
+    toast.fire({
+      icon: 'success',
+      title: 'Success',
+      text: `Imported ${unref(filteredDiagrams).length} diagrams into the workspace`
+    })
+  } finally {
+    await fetchVisualizerBookmarks()
+    isImporting.value = false
+    isImported.value = true
+  }
+}
 </script>

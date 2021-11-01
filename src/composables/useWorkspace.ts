@@ -142,7 +142,7 @@ const enrichXml = async (diagram: IDiagram, xml: string): Promise<string> => {
   return enrichedXml
 }
 
-const saveBookmark = async (diagram: IDiagram, xml: string) => {
+const saveBookmark = async (diagram: IDiagram, xml: string, silent?: boolean) => {
   if (unref(accessToken) === null) throw Error('not authenticated')
   const bearer = unref(accessToken) ?? ''
   const { instanceUrl } = jwtDecode<{ instanceUrl: string }>(bearer)
@@ -164,22 +164,25 @@ const saveBookmark = async (diagram: IDiagram, xml: string) => {
     const { ok, status } = response
     if (ok) {
       const { data: bookmark } = await response.json()
-      void toast.fire({
-        icon: 'success',
-        title: 'Saved bookmark',
-        text: `${diagram.name} was saved in workspace`
-      })
-      console.log('BOOKMARK', bookmark)
+      if (silent !== true) {
+        void toast.fire({
+          icon: 'success',
+          title: 'Saved bookmark',
+          text: `${diagram.name} was saved in workspace`
+        })
+      }
       return bookmark
     }
     throw Error(`${status} while creating bookmark`)
   } catch (err) {
-    void toast.fire({
-      icon: 'error',
-      title: 'Error while saving bookmark',
-      text: 'Check console for more details'
-    })
-    console.error(err, diagram)
+    if (silent !== true) {
+      console.error(err, diagram)
+      void toast.fire({
+        icon: 'error',
+        title: 'Error while saving bookmark',
+        text: 'Check console for more details'
+      })
+    } else throw err
   } finally {
     savingBookmark.value--
   }

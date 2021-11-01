@@ -7,7 +7,6 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, unref } from 'vue'
 import XmlFileColumn from './components/XmlFileColumn.vue'
 import GraphCanvas from './components/GraphCanvas.vue'
 import WorkspaceColumn from './components/WorkspaceColumn.vue'

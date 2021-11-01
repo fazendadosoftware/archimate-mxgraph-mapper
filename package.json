@@ -15,6 +15,7 @@
     "app:build": "yarn build:for:electron && yarn electron:builder"
   },
   "dependencies": {
+    "bottleneck": "^2.19.5",
     "buffer": "^6.0.3",
     "comlink": "^4.3.1",
     "date-fns": "^2.25.0",
