@@ -63,7 +63,7 @@
 </template>
 
 <script lang="ts" setup>
-import { unref, onBeforeUnmount, ref, computed } from 'vue'
+import { unref, onBeforeUnmount, ref, computed, watch } from 'vue'
 import Bottleneck from 'bottleneck'
 import SearchInput from './SearchInput.vue'
 import useDiagrams from '../composables/useDiagrams'
@@ -81,6 +81,8 @@ const jobCount = ref(0)
 const percentageComplete = computed(() => Math.round((unref(jobCount) / unref(filteredDiagrams).length) * 100) + '%')
 const isImporting = ref(false)
 const isImported = ref(false)
+
+watch(filteredDiagrams, () => { isImported.value = false })
 
 limiter.on('error', err => {
   console.error(err)
