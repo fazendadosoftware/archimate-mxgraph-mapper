@@ -129,16 +129,16 @@ const generateXmlFromDiagram = async (diagram: IDiagram): Promise<string> => {
 
     elements
       .forEach((element: IElement) => {
-        const { id, parentId, name, type, geometry } = element
-        vertexIndex[id] = graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(type))
+        const { id, parentId, name, geometry } = element
+        vertexIndex[id] = graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(element))
       })
 
     connectors
       .forEach((connector: IConnector) => {
-        const { id, type, sourceId, targetId } = connector
+        const { id, sourceId, targetId } = connector
         const sourceVertex = vertexIndex[sourceId]
         const targetVertex = vertexIndex[targetId]
-        graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(type))
+        graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(connector))
       })
   } finally {
     graph.getModel().endUpdate()

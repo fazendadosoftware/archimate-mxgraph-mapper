@@ -80,11 +80,13 @@
       class="flex-1 overflow-auto bg-gray-200">
       <connector-list v-if="selectedDiagram" :diagram="selectedDiagram" />
     </div>
+    <!--
     <div
       v-if="view === 'styleList'"
       class="flex-1 overflow-auto bg-gray-200">
       <style-list v-if="selectedDiagram" :diagram="selectedDiagram" />
     </div>
+    -->
     <div
       v-if="view === 'factSheetList'"
       class="flex-1 overflow-auto bg-gray-200">
@@ -138,7 +140,7 @@ const viewTabs = [
   { key: 'diagram', label: 'Diagram' },
   { key: 'elementList', label: 'Element List' },
   { key: 'connectorList', label: 'Connector List' },
-  { key: 'styleList', label: 'Style List' },
+  // { key: 'styleList', label: 'Style List' },
   { key: 'factSheetList', label: 'FactSheet list' }
 ]
 const view = ref('diagram')
