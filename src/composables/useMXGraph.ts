@@ -20,10 +20,13 @@ interface DrawGraphProps {
   undoListener: any
 }
 
-const getStyle = (type: string) => {
-  if (styleIndex[type] === undefined) console.warn(`No style defined for type ${type}`)
-  if (type !== '' && styleIndex[type] === undefined) console.warn(`No style defined for type ${type}`)
-  return styleIndex[type] ?? ''
+const getStyle = (data: IElement | IConnector) => {
+  const { type, style: _style } = data
+  const style = styleIndex[type]
+  if (type !== undefined && type !== '' && style === undefined) {
+    console.warn(`No style defined for type ${type}`, JSON.parse(JSON.stringify(data)))
+  }
+  return style ?? _style
 }
 
 const drawGraph = (props: DrawGraphProps, data: unknown) => {
@@ -41,7 +44,7 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
       _graph.getModel().beginUpdate()
       try {
         if (data === null) {
-          console.log('null')
+          throw Error('null data')
         } else if (typeof data === 'string') {
           const doc = mxUtils.parseXml(data)
           const codec = new MXCodec(doc)
@@ -53,16 +56,16 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
 
           elements
             .forEach((element: IElement) => {
-              const { id, parentId, name, type, geometry } = element
-              vertexIndex[id] = _graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(type))
+              const { id, parentId, name, geometry } = element
+              vertexIndex[id] = _graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(element))
             })
 
           connectors
             .forEach((connector: IConnector) => {
-              const { id, type, sourceId, targetId } = connector
+              const { id, sourceId, targetId } = connector
               const sourceVertex = vertexIndex[sourceId]
               const targetVertex = vertexIndex[targetId]
-              _graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(type))
+              _graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(connector))
             })
         }
       } finally {
