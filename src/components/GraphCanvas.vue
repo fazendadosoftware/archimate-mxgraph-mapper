@@ -92,9 +92,6 @@
       class="flex-1 overflow-auto bg-gray-200">
       <fact-sheet-list v-if="selectedDiagram" :diagram="selectedDiagram" />
     </div>
-    <div class="absolute top-0 right-0 p-2 italic text-gray-400">
-      <div>{{ name }} v{{ version }}</div>
-    </div>
   </div>
 </template>
 
@@ -108,9 +105,7 @@ import useDiagrams from '../composables/useDiagrams'
 import useWorkspace from '../composables/useWorkspace'
 import useMXGraph from '../composables/useMXGraph'
 import { IDiagram } from '../workers/diagrams'
-import pkg from '../../package.json'
 
-const { name, version } = pkg
 const graph = ref(null)
 const outline = ref(null)
 

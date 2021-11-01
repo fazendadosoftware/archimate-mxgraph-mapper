@@ -1,8 +1,13 @@
 {
-  "name": "vite-vue-electron",
-  "author": "your-name",
-  "version": "0.0.0",
+  "name": "archimate-mxgraph-mapper",
+  "author": "LeanIX GmbH",
+  "version": "0.4.0",
+  "private": true,
   "main": "electron/electron.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:fazendadosoftware/archimate-mxgraph-mapper.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
@@ -12,7 +17,7 @@
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron\"",
     "electron:builder": "electron-builder",
     "build:for:electron": "vue-tsc --noEmit && cross-env ELECTRON=true vite build",
-    "app:build": "yarn build:for:electron && yarn electron:builder"
+    "app:build": "npm run build:for:electron && npm run electron:builder"
   },
   "dependencies": {
     "bottleneck": "^2.19.5",
@@ -58,9 +63,9 @@
     "wait-on": "^6.0.0"
   },
   "build": {
-    "appId": "com.my-website.my-app",
-    "productName": "MyApp",
-    "copyright": "Copyright © 2019 ${author}",
+    "appId": "com.fazendadosoftware.archimateMxgraphMapper",
+    "productName": "Archimate MXGraph Mapper",
+    "copyright": "Copyright © 2021 ${author}",
     "mac": {
       "category": "public.app-category.utilities"
     },

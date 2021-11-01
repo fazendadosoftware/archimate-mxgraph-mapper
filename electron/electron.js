@@ -1,5 +1,7 @@
 const path = require('path');
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu, dialog } = require('electron');
+const pkg = require('../package.json')
+const { name, version } = pkg
 
 const isDev = process.env.IS_DEV == "true" ? true : false;
 
@@ -27,6 +29,38 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 }
+
+const template = [
+  {
+    role: 'help',
+    submenu: [
+      {
+        label: 'Toggle Developer Tools',
+          click(item, focusedWindow) {
+            if (focusedWindow) focusedWindow.webContents.toggleDevTools()
+          }
+      },
+      {
+        label: 'About',
+        click (item, focusedWindow) {
+          if (focusedWindow) {
+            const options = {
+              type: 'info',
+              title: 'About',
+              // detail: 'detaalhes',
+              buttons: ['ok'],
+              message: `${name} v${version}`
+            }
+            dialog.showMessageBox(focusedWindow, options, function () {})
+          }
+        }
+      }
+    ]
+  }
+]
+
+const menu = Menu.buildFromTemplate(template)
+Menu.setApplicationMenu(menu)
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
