@@ -10,15 +10,16 @@
 
 # Scripts
 
+Run `npm run app:build` to build your electron app.
+```bash
+npm run app:build
+```
+
 Run `npm run electron:dev` to work with electron in development mode.
 ```bash
 npm run electron:dev
 ```
 
-Run `npm run app:build` to build your electron app.
-```bash
-npm run app:build
-```
 
 ## Recommended IDE Setup
 
