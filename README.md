@@ -8,6 +8,17 @@
 * [Mac](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.0/Archimate-MXGraph-Mapper-0.4.0.dmg)
 * [Linux](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.0/Archimate-MXGraph-Mapper-0.4.0.AppImage)
 
+# Scripts
+
+Run `npm run electron:dev` to work with electron in development mode.
+```bash
+npm run electron:dev
+```
+
+Run `npm run app:build` to build your electron app.
+```bash
+npm run app:build
+```
 
 ## Recommended IDE Setup
 
@@ -32,24 +43,3 @@ Run `Volar: Switch TS Plugin on/off` from VSCode command palette.
 3. Open `src/main.ts` in VSCode
 4. Open the VSCode command palette
 5. Search and run "Select TypeScript version" -> "Use workspace version"
-
-# Scripts
-
-Run `yarn electron:dev` to work with electron in development mode.
-```bash
-yarn electron:dev
-```
-
-Run `yarn app:build` to build your electron app.
-```bash
-yarn app:build
-```
-
-Run `yarn dev` to open vite in browser in development mode.
-```bash
-yarn dev
-```
-Run `yarn build` to build files and can be served.
-```bash
-yarn build
-```
