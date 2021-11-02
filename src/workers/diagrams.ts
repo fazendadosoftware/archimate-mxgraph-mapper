@@ -1,6 +1,7 @@
-import { Parser } from 'xml2js'
+import xml2js from 'xml2js'
 import { expose } from 'comlink'
-const { parseStringPromise } = new Parser()
+// @ts-expect-error
+const { parseStringPromise } = xml2js.Parser()
 
 const sortElements = (elementA: IElement, elementB: IElement, connectorTree: Record<string, number>) => {
   const depthA = connectorTree[elementA.id] ?? 0
