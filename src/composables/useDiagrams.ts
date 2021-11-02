@@ -12,6 +12,16 @@ const loadDiagramsFromXml = async (xml: string): Promise<any> => {
   try {
     const diagrams = await proxy.getDiagrams(xml)
     return diagrams
+  } catch (err: any) {
+    console.error(err)
+    if (err.message === 'invalid xml') {
+      void toast.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Invalid xml format'
+      })
+    }
+    return []
   } finally {
     proxy[releaseProxy]()
   }

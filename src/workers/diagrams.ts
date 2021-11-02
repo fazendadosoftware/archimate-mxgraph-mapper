@@ -33,6 +33,7 @@ const mapId = (id: string = ''): string => id.replace(/^([A-Z]{4}_)/, '').replac
 
 export async function getDiagrams (xml: string) {
   const document = await parseStringPromise(xml)
+  if (document['xmi:XMI'] === undefined) throw Error('invalid xml')
   const {
     'xmi:XMI': {
       'xmi:Extension': [{
@@ -127,6 +128,7 @@ const buildConnectorTree = (connectors: IConnector[]) => {
     }, {})
 
   const getDepth = (targetId: string, targetIdIndex: Record<string, string[]>, depth: number = -1): any => {
+    if (depth > 20) return -1
     depth++
     const sourceIds = targetIdIndex[targetId]
     if (sourceIds === undefined) return depth
