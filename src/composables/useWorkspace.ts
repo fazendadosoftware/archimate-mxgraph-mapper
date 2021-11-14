@@ -240,9 +240,8 @@ const buildFactSheetIndex = async (selectedDiagram: IDiagram) => {
     const { data: { allFactSheets: { edges = [] } } } = body
     const fsIndex = edges
       .reduce((accumulator: any, { node: factSheet }: any) => {
-        let { externalId: { externalId } } = factSheet
-        if (typeof externalId === 'string') externalId = externalId.toUpperCase()
-        accumulator[externalId] = { ...factSheet, externalId }
+        const { externalId: { externalId } } = factSheet
+        accumulator[externalId] = factSheet
         return accumulator
       }, {})
     factSheetIndex.value = fsIndex

@@ -6,7 +6,7 @@
       v-model="searchQuery"
       :refreshing="isLoading"
       :placeholder="'Search workspace diagrams'"
-      @refresh="() => fetchVisualizerBookmarks()" />
+      @refresh="refresh" />
     <div class="flex-1 flex flex-col rounded-md overflow-hidden">
       <div class="flex-1 flex flex-col space-y-2 overflow-auto">
         <div
@@ -36,13 +36,19 @@
 </template>
 
 <script lang="ts" setup>
+import { unref } from 'vue'
 import useWorkspace from '../composables/useWorkspace'
-import SearchBar from './SearchBar.vue'
+import useDiagrams from '../composables/useDiagrams'
 import SearchInput from './SearchInput.vue'
 import AuthenticateButton from './AuthenticateButton.vue'
 import CurrentWorkspace from './CurrentWorkspace.vue'
 
-const { isAuthenticated, filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery, fetchVisualizerBookmarks, isLoading } = useWorkspace()
+const { isAuthenticated, filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery, fetchVisualizerBookmarks, buildFactSheetIndex, isLoading } = useWorkspace()
+const { selectedDiagram } = useDiagrams()
 
 const bookmarkHasXml = (bookmark: any) => !!bookmark?.state?.graphXml
+const refresh = async () => {
+  await fetchVisualizerBookmarks()
+  if (unref(selectedDiagram) !== null) await buildFactSheetIndex(unref(selectedDiagram))
+}
 </script>
