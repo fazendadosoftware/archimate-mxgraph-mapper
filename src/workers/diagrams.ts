@@ -71,6 +71,9 @@ export async function getDiagrams (xml: string) {
 
         type = type.replace(/[^\w\s]/gi, '').replace(/\r?\n|\r/g, '').trim()
         accumulator.connectorIndex[id] = { id, sourceId, targetId, type }
+        if (sourceId === 'EAID_AABFC2BF_A3E9_4a32_8A96_4A76B806D40A' || targetId === 'EAID_AABFC2BF_A3E9_4a32_8A96_4A76B806D40A') {
+          console.log('MISSING ELEMENT HAS CONNECTOR', { id, sourceId, targetId, type })
+        }
         for (const element of [source, target]) {
           const { $: { 'xmi:idref': _id }, model: [{ $: { type, name } }] } = element
           const id = mapId(_id as string)
@@ -106,6 +109,13 @@ export async function getDiagrams (xml: string) {
                 return accumulator
               }, {})
             if (x0 !== null) element.geometry = [x0, y0, x1 - x0, y1 - y0]
+          }
+          if (properties.name === 'AutoCAD Architecture - Service interaction Diagram') {
+            if (!(subject in elementIndex)) {
+              const id = mapId(element.subject as string)
+              const { [id]: { stereotype, documentation } = {} as any } = elementStereotypeIndex
+              console.log('NO SUBJSCE', id, stereotype, documentation)
+            }
           }
           if (subject in elementIndex) accumulator.elements.push({ ...elementIndex[subject], ...element })
           else if (subject in connectorIndex) accumulator.connectors.push({ ...connectorIndex[subject], ...element })
