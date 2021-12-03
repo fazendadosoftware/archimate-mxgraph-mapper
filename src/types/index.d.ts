@@ -3,15 +3,11 @@ import { Model } from './model.d'
 import { PackagedElement } from './packagedElement'
 import { OwnedComment } from './ownedComment'
 import { OwnedAttribute } from './ownedAttribute'
-export { Documentation, Model, PackagedElement, OwnedComment, OwnedAttribute }
+import { Element } from './element.d'
+export { Documentation, Model, PackagedElement, OwnedComment, OwnedAttribute, Element }
 
-export interface RawDocument {
+export interface ExportDocument {
   documentation?: Documentation
-  model?: Model
-  extension?: any
-}
-
-export interface Document {
-  documentation: Documentation
   model: Model
+  extension?: any
 }

@@ -1,19 +1,12 @@
 import { readFile } from 'fs/promises'
 import { Parser } from 'xml2js'
 import isEqual from 'lodash.isequal'
-import { RawDocument, Documentation, Model, PackagedElement, OwnedComment } from '../types'
+import { ExportDocument, Documentation, Model, PackagedElement, OwnedComment } from '../types'
 
 const EXPORTER = 'Enterprise Architect'
 const EXPORTER_VERSION = '6.5'
 const MODEL = { name: 'EA_Model', type: 'uml:Model', visibility: 'public' }
-
-export type PackagedElementIndex = Record<string, PackagedElement>
-type ArchiMate3Type = string
-type ComponentID = string
-export interface ModelIndexes {
-  packagedElementIndex: PackagedElementIndex
-  elementIndex: Record<ArchiMate3Type, { archimate3Type: ArchiMate3Type, type: string, ids: ComponentID[] }>
-}
+const EXTENDER = { extender: 'Enterprise Architect', extenderID: '6.5' }
 
 export const mapOwnedComment = (input: any) => {
   const { $ = null } = input
@@ -39,39 +32,60 @@ export const mapPackagedElement = (input: any): PackagedElement => {
   return packagedElement
 }
 
-const mapModelSection = (xmi: any) => {
+const mapModel = (xmi: any) => {
   const { $ = {}, ..._models } = xmi?.['uml:Model']?.[0] ?? {}
   const { name, visibility, 'xmi:type': type } = $
   if (!isEqual(MODEL, { name, visibility, type })) throw Error('invalid model')
-  const modelIndexes = Object.entries(_models)
-    .reduce(({ packagedElementIndex, elementIndex }: ModelIndexes, [key, values]: [string, any]) => {
+  const model = Object.entries(_models)
+    .reduce(({ packagedElementIndex, elementIndex, archimate3Index }: Model, [key, values]: [string, any]) => {
       if (key === 'packagedElement') {
         packagedElementIndex = values?.map(mapPackagedElement)
           .reduce((accumulator: PackagedElement[], packagedElement: PackagedElement) => ({ ...accumulator, [packagedElement.id]: packagedElement }), packagedElementIndex)
       } else if (key.startsWith('ArchiMate3:ArchiMate_')) {
         const [prefix, archimate3Type] = key.split('_')
         if (prefix !== 'ArchiMate3:ArchiMate') throw Error(`invalid component prefix: ${key}`)
-        const { type, ids } = values
+        const { type: archimate3Category, ids }: { type: string, ids: Set<string>} = values
           .map(({ $ }: any) => Object.entries($)[0])
           .map(([type, id]: any) => ({ type: type.split('_')[1], id }))
-          .reduce(({ type, ids }: { type: string | null, ids: Set<string> }, { type: t, id }: { type: string, id: string }) => {
-            if (type === null) type = t
+          .reduce(({ type, ids }: { type: string, ids: Set<string> }, { type: t, id }: { type: string, id: string }) => {
+            if (type === '') type = t
             else if (type !== t) throw Error('multiple types in component')
             ids.add(id)
             return { type, ids }
-          }, { type: null, ids: new Set() })
-        elementIndex[archimate3Type] = { archimate3Type, type, ids: [...ids] }
+          }, { type: '', ids: new Set<string>() })
+        if (archimate3Index[archimate3Category] === undefined) archimate3Index[archimate3Category] = []
+        if (!archimate3Index[archimate3Category].includes(archimate3Type)) archimate3Index[archimate3Category].push(archimate3Type)
+        for (const elementID of [...ids] as string[]) {
+          if (elementIndex[elementID] !== undefined) throw Error(`collision with elementID ${elementID}`)
+          elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archimate3Type }
+        }
       } else {
         console.warn(`ignoring component prefix: ${key}`)
       }
-      return { packagedElementIndex, elementIndex }
-    }, { packagedElementIndex: {}, elementIndex: {} })
-  return $
+      return { packagedElementIndex, elementIndex, archimate3Index }
+    }, { packagedElementIndex: {}, elementIndex: {}, archimate3Index: {} })
+  model.archimate3Index = Object.entries(model.archimate3Index)
+    .reduce((accumulator, [archimate3Category, archimate3Types]) => ({ ...accumulator, [archimate3Category]: archimate3Types.sort() }), {})
+  return model
 }
-const RawDocumentKeyMappings: Record<keyof RawDocument, (xmi: any) => any> = {
+
+const mapExtension = (xmi: any) => {
+  const { $: { extender = '', extenderID = '' } = {}, ..._extensions } = xmi?.['xmi:Extension']?.[0] ?? {}
+  if (!isEqual(EXTENDER, { extender, extenderID })) throw Error('invalid model')
+  const {
+    connectors: [{ connector: connectors }] = [],
+    diagrams: [{ diagram: diagrams }] = [],
+    elements: [{ element: elements }] = []
+    // primitivetypes,
+    // profiles
+  } = _extensions
+  return { connectors, diagrams, elements }
+}
+
+const ExportDocumentKeyMappings: Record<keyof ExportDocument, (xmi: any) => any> = {
   documentation: (xmi: any) => xmi?.['xmi:Documentation']?.[0]?.$,
-  model: mapModelSection,
-  extension: (xmi: any) => xmi?.['xmi:Extension']?.[0]
+  model: mapModel,
+  extension: mapExtension
 }
 
 export const getXmlFromFile = async (filePath: string) => await readFile(filePath, 'utf8').then(new Parser().parseStringPromise) as unknown
@@ -85,16 +99,12 @@ export const validateDocumentation = (documentation?: Documentation): Documentat
   return documentation
 }
 
-export const validateModel = (model?: Model): Model | null => {
-  return model ?? null
-}
-
-export const getDocumentRaw = (document: any): RawDocument => {
+export const mapDocument = (document: any): ExportDocument => {
   if (typeof document !== 'object' || document === null || document?.['xmi:XMI'] === undefined) throw Error('invalid object')
   const xmi = document['xmi:XMI']
-  const rawDocument = Object
-    .entries(RawDocumentKeyMappings)
-    .reduce((accumulator: RawDocument, [key, mapFn]) => ({ ...accumulator, [key]: mapFn(xmi) }), {})
+  // @ts-expect-error
+  const rawDocument = Object.entries(ExportDocumentKeyMappings)
+    .reduce((accumulator: ExportDocument, [key, mapFn]) => ({ ...accumulator, [key]: mapFn(xmi) }), {}) as ExportDocument
   let { documentation, extension, model } = rawDocument
   documentation = validateDocumentation(documentation)
   if (documentation === undefined) throw Error('invalid documentation')

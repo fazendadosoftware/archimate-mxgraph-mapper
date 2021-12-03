@@ -1,17 +1,17 @@
 import {
   getXmlFromFile,
-  getDocumentRaw
+  mapDocument
 } from './xmlToJsonMapper'
 
 const EXPORTED_XML_FILE_PATH = './test/data/TestExport.xml'
 
 describe('parsing the exported xml file', () => {
-  let document: any
+  let rawDocument: any
 
   test('xml document has the correct namespace', async () => {
-    document = await getXmlFromFile(EXPORTED_XML_FILE_PATH)
-    const documentRaw = getDocumentRaw(document)
-    console.log('document', documentRaw)
+    rawDocument = await getXmlFromFile(EXPORTED_XML_FILE_PATH)
+    const document = mapDocument(rawDocument)
+    console.log('document', document)
     // expect(ArchiMate3NS).toBe(Constants.ArchiMate3NS)
   })
 

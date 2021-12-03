@@ -13,3 +13,5 @@ export interface PackagedElement {
   nestedClassifier?: null // skipped property
   packagedElements?: PackagedElement[] // skipped property
 }
+
+export type PackagedElementIndex = Record<string, PackagedElement>
