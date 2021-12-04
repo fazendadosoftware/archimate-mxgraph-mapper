@@ -1,9 +1,11 @@
-export type ElementID = string
-export type ArchiMate3Category = string
-export type ArchiMate3Type = string
+import { ExtensionDiagramElement } from './extensionDiagram'
+import { ArchiMate3Type, ArchiMate3Category } from './modelElement.d'
 
-export interface Element {
-  id: ElementID
-  type: ArchiMate3Type
-  category: ArchiMate3Category
+export interface Element extends ExtensionDiagramElement {
+  name: string | null
+  category: ArchiMate3Category | null
+  type: ArchiMate3Type | null
+  hierarchyLevel: number | null
+  parent: string | null
+  children: string[] | null
 }

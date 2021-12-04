@@ -1,7 +1,20 @@
 import { readFile } from 'fs/promises'
 import { Parser } from 'xml2js'
 import isEqual from 'lodash.isequal'
-import { ExportDocument, Documentation, Model, PackagedElement, OwnedComment } from '../types'
+import {
+  ExportedDocument,
+  Documentation,
+  Model,
+  PackagedElement,
+  OwnedComment,
+  ExtensionElement,
+  ExtensionConnector,
+  ExtensionDiagram,
+  ExtensionDiagramProject,
+  ExtensionDiagramElement,
+  Extension,
+  Element
+} from '../types'
 
 const EXPORTER = 'Enterprise Architect'
 const EXPORTER_VERSION = '6.5'
@@ -18,11 +31,46 @@ export const mapOwnedComment = (input: any) => {
   return ownedComment
 }
 
-export const mapPackagedElement = (input: any): PackagedElement => {
+export type PackagedElementIndex = Record<string, PackagedElement>
+
+export const packagedElementReducer = (accumulator: PackagedElementIndex, _packagedElement: any) => {
+  let {
+    parent = null,
+    hierarchyLevel = 0,
+    $: { 'xmi:id': id = null, 'xmi:type': type = null, name = null },
+    ownedComment: ownedComments = [],
+    packagedElement: packagedElements = []
+  } = _packagedElement ?? {}
+  if (id === null || type === null) throw Error(`invalid packagedElement: ${JSON.stringify(_packagedElement)}`)
+  const childLevel = typeof hierarchyLevel === 'number' ? hierarchyLevel + 1 : 0
+  const children = packagedElements.map(({ $: { 'xmi:id': id = null } }) => id) as string[]
+  packagedElements = packagedElements.map((packagedElement: any) => ({ ...packagedElement, hierarchyLevel: childLevel, parent: id, children: children }))
+
+  accumulator = packagedElements.reduce(packagedElementReducer, accumulator)
+
+  const packagedElement: PackagedElement = {
+    id,
+    hierarchyLevel,
+    type,
+    name,
+    parent,
+    children,
+    ownedComments: (ownedComments as any[]).map(mapOwnedComment)
+  }
+  accumulator[packagedElement.id] = packagedElement
+  return accumulator
+}
+
+/*
+export const mapPackagedElement = (_packagedElement: any): PackagedElement => {
   // we skip ownedAttribute and packagedElements from the destructuration
-  const { $ = {}, ownedComment: ownedComments = [] } = input ?? {}
-  const { 'xmi:id': id = null, 'xmi:type': type = null, name = null } = $
-  if (id === null || type === null || name === null) throw Error(`invalid packagedElement: ${JSON.stringify(input)}`)
+  const {
+    $: { 'xmi:id': id = null, 'xmi:type': type = null, name = null },
+    ownedComment: ownedComments = [],
+    packagedElement: packagedElements = []
+  } = _packagedElement ?? {}
+  if (id === null || type === null || name === null) throw Error(`invalid packagedElement: ${JSON.stringify(_packagedElement)}`)
+
   const packagedElement: PackagedElement = {
     id,
     type,
@@ -31,6 +79,7 @@ export const mapPackagedElement = (input: any): PackagedElement => {
   }
   return packagedElement
 }
+*/
 
 const mapModel = (xmi: any) => {
   const { $ = {}, ..._models } = xmi?.['uml:Model']?.[0] ?? {}
@@ -38,10 +87,8 @@ const mapModel = (xmi: any) => {
   if (!isEqual(MODEL, { name, visibility, type })) throw Error('invalid model')
   const model = Object.entries(_models)
     .reduce(({ packagedElementIndex, elementIndex, archimate3Index }: Model, [key, values]: [string, any]) => {
-      if (key === 'packagedElement') {
-        packagedElementIndex = values?.map(mapPackagedElement)
-          .reduce((accumulator: PackagedElement[], packagedElement: PackagedElement) => ({ ...accumulator, [packagedElement.id]: packagedElement }), packagedElementIndex)
-      } else if (key.startsWith('ArchiMate3:ArchiMate_')) {
+      if (key === 'packagedElement') packagedElementIndex = values.reduce(packagedElementReducer, packagedElementIndex)
+      else if (key.startsWith('ArchiMate3:ArchiMate_')) {
         const [prefix, archimate3Type] = key.split('_')
         if (prefix !== 'ArchiMate3:ArchiMate') throw Error(`invalid component prefix: ${key}`)
         const { type: archimate3Category, ids }: { type: string, ids: Set<string>} = values
@@ -69,44 +116,119 @@ const mapModel = (xmi: any) => {
   return model
 }
 
+const mapExtensionElement = (_element: any) => {
+  // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
+  // properties, style, , tags, times
+  const { $ } = _element ?? {}
+  const { name = null, 'xmi:idref': id = null, 'xmi:type': type = null } = $
+  const element: ExtensionElement = { id, type, name }
+  return element
+}
+
+const allowedDirections = ['Source -> Destination', 'Destination -> Source', 'Unspecified']
+const mapExtensionConnector = (_connector: any) => {
+  // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
+  // properties, style, , tags, times
+  let {
+    $: { 'xmi:idref': id },
+    labels: [{ $: { mb: label } = { mb: '' } }],
+    properties: [{ $: { direction = 'Unspecified', ea_type: eaType, stereotype } }],
+    source: [{ $: { 'xmi:idref': sourceID = null } }],
+    target: [{ $: { 'xmi:idref': targetID = null } }]
+  } = _connector ?? {}
+  label = label.replace(/[^a-zA-Z_]/g, '')
+  const connector: ExtensionConnector = { id, label, direction, eaType, stereotype, sourceID, targetID }
+  if (!allowedDirections.includes(direction)) throw Error(`invalid connector direction: ${JSON.stringify(connector)}`)
+  if (sourceID === null || targetID === null) throw Error(`invalid connector, source or target IDS are null: ${JSON.stringify(connector)}`)
+  return connector
+}
+
+const mapDiagramElement = (_diagramElement: any) => {
+  let { $: { geometry = null, seqno, subject = null } } = _diagramElement ?? {}
+  if (typeof subject !== 'string') throw Error(`invalid diagram element subject: ${JSON.stringify(_diagramElement)}`)
+  const { Left: x0 = null, Right: x1 = null, Bottom: y1 = null, Top: y0 = null } = geometry.replace(/;/g, ' ').trim().split(' ')
+    .reduce((accumulator: any, vertex: string) => {
+      const [coordinate, value] = vertex.split('=')
+      accumulator[coordinate] = parseInt(value)
+      return accumulator
+    }, {})
+  const rect = x0 == null ? null : { x0, y0, width: x1 - x0, height: y1 - y0 }
+  if (typeof geometry !== 'string') throw Error(`invalid diagram element geometry: ${JSON.stringify(_diagramElement)}`)
+  if (typeof seqno === 'string') {
+    seqno = parseInt(seqno)
+    if (isNaN(seqno)) throw Error(`invalid diagram element seqno: ${JSON.stringify(_diagramElement)}`)
+  }
+  const element: ExtensionDiagramElement = { id: subject, seqno, geometry, rect }
+  return element
+}
+
+const mapExtensionDiagram = (_diagram: any) => {
+  let {
+    $: { 'xmi:id': id },
+    elements: [{ element: elements }],
+    project: [{ $: { author, created, modified, version } }]
+  } = _diagram
+  elements = elements.map(mapDiagramElement)
+  const project: ExtensionDiagramProject = { author, created, modified, version }
+  const diagram: ExtensionDiagram = { id, elements, project }
+  return diagram
+}
+
 const mapExtension = (xmi: any) => {
   const { $: { extender = '', extenderID = '' } = {}, ..._extensions } = xmi?.['xmi:Extension']?.[0] ?? {}
   if (!isEqual(EXTENDER, { extender, extenderID })) throw Error('invalid model')
-  const {
+  // skipped properties: primitivetypes, profiles
+  let {
     connectors: [{ connector: connectors }] = [],
     diagrams: [{ diagram: diagrams }] = [],
     elements: [{ element: elements }] = []
-    // primitivetypes,
-    // profiles
   } = _extensions
-  return { connectors, diagrams, elements }
-}
-
-const ExportDocumentKeyMappings: Record<keyof ExportDocument, (xmi: any) => any> = {
-  documentation: (xmi: any) => xmi?.['xmi:Documentation']?.[0]?.$,
-  model: mapModel,
-  extension: mapExtension
+  if (!Array.isArray(elements)) throw Error(`invalid extensions: ${JSON.stringify(_extensions)}`)
+  elements = elements.map(mapExtensionElement)
+  connectors = connectors.map(mapExtensionConnector)
+  diagrams = diagrams.map(mapExtensionDiagram)
+  const extension: Extension = { extender, extenderID, connectors, diagrams, elements }
+  return extension
 }
 
 export const getXmlFromFile = async (filePath: string) => await readFile(filePath, 'utf8').then(new Parser().parseStringPromise) as unknown
 
-export const validateDocumentation = (documentation?: Documentation): Documentation => {
-  if (documentation === undefined || typeof documentation !== 'object') throw Error('invalid documentation')
-  const { exporter = '', exporterID = '', exporterVersion = '' } = documentation
-  if (exporter !== EXPORTER) throw Error(`invalid exporter: got ${exporter}, expected ${EXPORTER}`)
-  if (exporterVersion !== EXPORTER_VERSION) throw Error(`invalid exporter version: got ${exporterVersion}, expected ${EXPORTER_VERSION}`)
-  if (exporterID === '') throw Error(`invalid exporter ID: ${exporterID}`)
+export const mapDocumentation = (xmi: any): Documentation => {
+  const { $ } = xmi?.['xmi:Documentation']?.[0] ?? {}
+  const { exporter = '', exporterID = '', exporterVersion = '' } = $
+  if (exporter !== EXPORTER) throw Error(`invalid exporter: got ${exporter as string}, expected ${EXPORTER}`)
+  if (exporterVersion !== EXPORTER_VERSION) throw Error(`invalid exporter version: got ${exporterVersion as string}, expected ${EXPORTER_VERSION}`)
+  if (exporterID === '') throw Error(`invalid exporter ID: ${exporterID as string}`)
+  const documentation: Documentation = { exporter, exporterVersion, exporterID }
   return documentation
 }
 
-export const mapDocument = (document: any): ExportDocument => {
-  if (typeof document !== 'object' || document === null || document?.['xmi:XMI'] === undefined) throw Error('invalid object')
-  const xmi = document['xmi:XMI']
-  // @ts-expect-error
-  const rawDocument = Object.entries(ExportDocumentKeyMappings)
-    .reduce((accumulator: ExportDocument, [key, mapFn]) => ({ ...accumulator, [key]: mapFn(xmi) }), {}) as ExportDocument
-  let { documentation, extension, model } = rawDocument
-  documentation = validateDocumentation(documentation)
-  if (documentation === undefined) throw Error('invalid documentation')
-  return { documentation, extension, model }
+export const mapExportedDocument = (rawDocument: any): ExportedDocument => {
+  if (typeof rawDocument !== 'object' || rawDocument === null || rawDocument?.['xmi:XMI'] === undefined) throw Error('invalid raw document')
+  const xmi = rawDocument['xmi:XMI']
+  const documentation = mapDocumentation(xmi)
+  const model = mapModel(xmi)
+  const extension = mapExtension(xmi)
+  const extensionElementIndex = extension.elements
+    .reduce((accumulator: Record<string, ExtensionElement>, element) => {
+      accumulator[element.id] = element
+      return accumulator
+    }, {})
+
+  const diagrams = extension.diagrams
+    .map(diagram => {
+      const elements = diagram.elements
+        .map(diagramElement => {
+          const { [diagramElement.id]: { type = null, category = null } = { type: null, category: null } } = model.elementIndex
+          const {
+            [diagramElement.id]: { hierarchyLevel, parent, children } = { hierarchyLevel: null, parent: null, children: null }
+          } = model.packagedElementIndex
+          const { [diagramElement.id]: { name = null } = { name: null } } = extensionElementIndex
+          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children }
+          return element
+        })
+      return diagram
+    })
+  const exportedDocument: ExportedDocument = { ...documentation, model, extension }
+  return exportedDocument
 }

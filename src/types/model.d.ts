@@ -1,8 +1,9 @@
 import { PackagedElementIndex } from './packagedElement'
-import { Element, ElementID, ArchiMate3Category, ArchiMate3Type } from './element.d'
+import { ModelElement, ModelElementID, ArchiMate3Category, ArchiMate3Type } from './modelElement.d'
 
+export type ModelElementIndex = Record<ModelElementID, ModelElement>
 export interface Model {
   packagedElementIndex: PackagedElementIndex
-  elementIndex: Record<ElementID, Element>
+  elementIndex: ModelElementIndex
   archimate3Index: Record<ArchiMate3Category, ArchiMate3Type[]>
 }

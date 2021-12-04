@@ -5,6 +5,9 @@ export interface PackagedElement {
   // PackagedElement uml type
   type: UMLType
   id: ElementId
+  parent: ElementId
+  children: ElementId[]
+  hierarchyLevel: number
   name: string
   ownedComments: OwnedComment[]
   ownedAttributes?: null // skipped property
