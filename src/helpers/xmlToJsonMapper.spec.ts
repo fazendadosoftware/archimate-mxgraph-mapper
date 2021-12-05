@@ -2,27 +2,40 @@ import {
   getXmlFromFile,
   mapExportedDocument
 } from './xmlToJsonMapper'
+import {
+  ExportedDocument
+} from '../types'
 
 const EXPORTED_XML_FILE_PATH = './test/data/TestExport.xml'
 
 describe('parsing the exported xml file', () => {
   let rawDocument: any
+  let document: ExportedDocument
 
-  test('xml document has the correct namespace', async () => {
+  test('exported document has the correct structure', async () => {
     rawDocument = await getXmlFromFile(EXPORTED_XML_FILE_PATH)
-    const document = mapExportedDocument(rawDocument)
-    expect(typeof document).toEqual('object')
-    expect(document).toHaveProperty('exporter')
-    expect(document).toHaveProperty('exporterID')
-    expect(document).toHaveProperty('exporterVersion')
-    expect(document).toHaveProperty('diagrams')
-    expect(document).toHaveProperty('archiMate3Index')
+    document = mapExportedDocument(rawDocument)
     expect(document.exporter).toBe('Enterprise Architect')
     expect(document.exporterID).toBe('1554')
     expect(document.exporterVersion).toBe('6.5')
-    expect(typeof document.archiMate3Index).toBe('object')
+    expect(typeof document.model).toBe('object')
     expect(Array.isArray(document.diagrams)).toBe(true)
 
+    expect(typeof document.model.archiMate3Index).toBe('object')
+    expect(typeof document.model.elementIndex).toBe('object')
+    expect(typeof document.model.packagedElementIndex).toBe('object')
+  })
+
+  test('exported document has the correct diagrams structure', async () => {
+    // index of element ids -> [diagram ids]
+    const exportedDiagramElementIndex = document.diagrams
+      .reduce((accumulator: Record<string, string[]>, diagram) => {
+        diagram.elements.forEach(element => {
+          if (accumulator[element.id] === undefined) accumulator[element.id] = []
+          if (!accumulator[element.id].includes(diagram.id)) accumulator[element.id].push(diagram.id)
+        })
+        return accumulator
+      }, {})
     document.diagrams
       .forEach(diagram => {
         expect(typeof diagram.id).toBe('string')
@@ -70,6 +83,15 @@ describe('parsing the exported xml file', () => {
             const endNodeInDiagram = diagramElementIds.includes(link.end) === true ? 1 : 0
             // only one node in the link should belong to the diagram
             expect(startNodeInDiagram + endNodeInDiagram).toEqual(1)
+            const externalElementId = startNodeInDiagram === 0 ? link.start : link.end
+            const externalElementInOtherDiagrams = exportedDiagramElementIndex[externalElementId]
+            const externalElementIsPackagedElement = document.model.packagedElementIndex[externalElementId]
+            const externalElementInModel = document.model.elementIndex[externalElementId]
+            // external element id should be indexed in model element index
+            if (externalElementInOtherDiagrams === undefined) {
+              console.log('jijiji')
+            }
+            expect(externalElementInOtherDiagrams).not.toBeUndefined()
           }
         })
       })

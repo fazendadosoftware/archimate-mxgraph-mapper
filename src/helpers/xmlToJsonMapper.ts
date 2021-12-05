@@ -63,26 +63,6 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
   return accumulator
 }
 
-/*
-export const mapPackagedElement = (_packagedElement: any): PackagedElement => {
-  // we skip ownedAttribute and packagedElements from the destructuration
-  const {
-    $: { 'xmi:id': id = null, 'xmi:type': type = null, name = null },
-    ownedComment: ownedComments = [],
-    packagedElement: packagedElements = []
-  } = _packagedElement ?? {}
-  if (id === null || type === null || name === null) throw Error(`invalid packagedElement: ${JSON.stringify(_packagedElement)}`)
-
-  const packagedElement: PackagedElement = {
-    id,
-    type,
-    name,
-    ownedComments: (ownedComments as any[]).map(mapOwnedComment)
-  }
-  return packagedElement
-}
-*/
-
 const mapModel = (xmi: any) => {
   const { $ = {}, ..._models } = xmi?.['uml:Model']?.[0] ?? {}
   const { name, visibility, 'xmi:type': type } = $
@@ -252,7 +232,6 @@ export const mapExportedDocument = (rawDocument: any): ExportedDocument => {
       const diagram: Diagram = { ...extensionDiagram, elements, links }
       return diagram
     })
-  const { archiMate3Index } = model
-  const exportedDocument: ExportedDocument = { ...documentation, diagrams, archiMate3Index }
+  const exportedDocument: ExportedDocument = { ...documentation, diagrams, model }
   return exportedDocument
 }
