@@ -1,5 +1,7 @@
 export interface ExtensionDiagram {
   id: string
+  name: string
+  type: string
   project: ExtensionDiagramProject
   elements: ExtensionDiagramElement[]
 }

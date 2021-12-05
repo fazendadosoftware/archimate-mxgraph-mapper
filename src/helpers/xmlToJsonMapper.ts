@@ -13,7 +13,9 @@ import {
   ExtensionDiagramProject,
   ExtensionDiagramElement,
   Extension,
-  Element
+  Element,
+  Link,
+  Diagram
 } from '../types'
 
 const EXPORTER = 'Enterprise Architect'
@@ -86,7 +88,7 @@ const mapModel = (xmi: any) => {
   const { name, visibility, 'xmi:type': type } = $
   if (!isEqual(MODEL, { name, visibility, type })) throw Error('invalid model')
   const model = Object.entries(_models)
-    .reduce(({ packagedElementIndex, elementIndex, archimate3Index }: Model, [key, values]: [string, any]) => {
+    .reduce(({ packagedElementIndex, elementIndex, archiMate3Index }: Model, [key, values]: [string, any]) => {
       if (key === 'packagedElement') packagedElementIndex = values.reduce(packagedElementReducer, packagedElementIndex)
       else if (key.startsWith('ArchiMate3:ArchiMate_')) {
         const [prefix, archimate3Type] = key.split('_')
@@ -100,8 +102,8 @@ const mapModel = (xmi: any) => {
             ids.add(id)
             return { type, ids }
           }, { type: '', ids: new Set<string>() })
-        if (archimate3Index[archimate3Category] === undefined) archimate3Index[archimate3Category] = []
-        if (!archimate3Index[archimate3Category].includes(archimate3Type)) archimate3Index[archimate3Category].push(archimate3Type)
+        if (archiMate3Index[archimate3Category] === undefined) archiMate3Index[archimate3Category] = []
+        if (!archiMate3Index[archimate3Category].includes(archimate3Type)) archiMate3Index[archimate3Category].push(archimate3Type)
         for (const elementID of [...ids] as string[]) {
           if (elementIndex[elementID] !== undefined) throw Error(`collision with elementID ${elementID}`)
           elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archimate3Type }
@@ -109,9 +111,9 @@ const mapModel = (xmi: any) => {
       } else {
         console.warn(`ignoring component prefix: ${key}`)
       }
-      return { packagedElementIndex, elementIndex, archimate3Index }
-    }, { packagedElementIndex: {}, elementIndex: {}, archimate3Index: {} })
-  model.archimate3Index = Object.entries(model.archimate3Index)
+      return { packagedElementIndex, elementIndex, archiMate3Index }
+    }, { packagedElementIndex: {}, elementIndex: {}, archiMate3Index: {} })
+  model.archiMate3Index = Object.entries(model.archiMate3Index)
     .reduce((accumulator, [archimate3Category, archimate3Types]) => ({ ...accumulator, [archimate3Category]: archimate3Types.sort() }), {})
   return model
 }
@@ -119,9 +121,16 @@ const mapModel = (xmi: any) => {
 const mapExtensionElement = (_element: any) => {
   // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
   // properties, style, , tags, times
-  const { $ } = _element ?? {}
+  let { $, links: [links] = [null] } = _element ?? {}
   const { name = null, 'xmi:idref': id = null, 'xmi:type': type = null } = $
-  const element: ExtensionElement = { id, type, name }
+  if (links !== null) {
+    links = Object.entries<Array<{ $: any }>>(links)
+      .reduce((accumulator: any[], [type, links]) => {
+        links.forEach(({ $: { 'xmi:id': id, end, start } }) => accumulator.push({ id, type, end, start }))
+        return accumulator
+      }, [])
+  }
+  const element: ExtensionElement = { id, type, name, links }
   return element
 }
 
@@ -166,11 +175,12 @@ const mapExtensionDiagram = (_diagram: any) => {
   let {
     $: { 'xmi:id': id },
     elements: [{ element: elements }],
-    project: [{ $: { author, created, modified, version } }]
+    project: [{ $: { author, created, modified, version } }],
+    properties: [{ $: { name, type } }]
   } = _diagram
   elements = elements.map(mapDiagramElement)
   const project: ExtensionDiagramProject = { author, created, modified, version }
-  const diagram: ExtensionDiagram = { id, elements, project }
+  const diagram: ExtensionDiagram = { id, name, type, elements, project }
   return diagram
 }
 
@@ -215,20 +225,34 @@ export const mapExportedDocument = (rawDocument: any): ExportedDocument => {
       return accumulator
     }, {})
 
+  // we need to create a link index from elements
   const diagrams = extension.diagrams
-    .map(diagram => {
-      const elements = diagram.elements
+    .map(extensionDiagram => {
+      const elements = extensionDiagram.elements
         .map(diagramElement => {
           const { [diagramElement.id]: { type = null, category = null } = { type: null, category: null } } = model.elementIndex
           const {
-            [diagramElement.id]: { hierarchyLevel, parent, children } = { hierarchyLevel: null, parent: null, children: null }
+            [diagramElement.id]: { hierarchyLevel, parent, children } = { hierarchyLevel: 0, parent: null, children: null }
           } = model.packagedElementIndex
-          const { [diagramElement.id]: { name = null } = { name: null } } = extensionElementIndex
-          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children }
+          const { [diagramElement.id]: { name = null, links = null } = {} } = extensionElementIndex
+          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children, links }
           return element
-        })
+        }).sort(({ hierarchyLevel: A }, { hierarchyLevel: B }) => A > B ? 1 : A < B ? -1 : 0)
+      const diagramElementIds = new Set(elements.map(({ id }) => id))
+      const linkIndex = elements
+        .reduce((accumulator: Record<string, Link>, element) => {
+          accumulator = (element?.links ?? []).reduce((accumulator, link) => {
+            const { start, end } = link
+            const isExternal = !(diagramElementIds.has(start) && diagramElementIds.has(end))
+            return { ...accumulator, [link.id]: { ...link, isExternal } }
+          }, accumulator)
+          return accumulator
+        }, {})
+      const links = Object.values(linkIndex)
+      const diagram: Diagram = { ...extensionDiagram, elements, links }
       return diagram
     })
-  const exportedDocument: ExportedDocument = { ...documentation, model, extension }
+  const { archiMate3Index } = model
+  const exportedDocument: ExportedDocument = { ...documentation, diagrams, archiMate3Index }
   return exportedDocument
 }

@@ -10,6 +10,8 @@ import { ExportedDocument } from './exportedDocument'
 import { Extension } from './extension.d'
 import { ExtensionDiagram, ExtensionDiagramProject, ExtensionDiagramElement, RectGeometry } from './extensionDiagram'
 import { Element } from './element.d'
+import { Link } from './link'
+import { Diagram } from './diagram.d'
 
 export {
   Documentation,
@@ -27,5 +29,7 @@ export {
   ExtensionDiagramProject,
   ExtensionDiagramElement,
   RectGeometry,
-  Element
+  Element,
+  Link,
+  Diagram
 }

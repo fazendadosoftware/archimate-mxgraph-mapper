@@ -5,5 +5,5 @@ export type ModelElementIndex = Record<ModelElementID, ModelElement>
 export interface Model {
   packagedElementIndex: PackagedElementIndex
   elementIndex: ModelElementIndex
-  archimate3Index: Record<ArchiMate3Category, ArchiMate3Type[]>
+  archiMate3Index: Record<ArchiMate3Category, ArchiMate3Type[]>
 }
