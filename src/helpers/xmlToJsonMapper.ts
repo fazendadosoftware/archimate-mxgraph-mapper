@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises'
+// import { readFile } from 'fs/promises'
 import { Parser } from 'xml2js'
 import isEqual from 'lodash.isequal'
 import {
@@ -71,8 +71,7 @@ const mapModel = (xmi: any) => {
     .reduce(({ packagedElementIndex, elementIndex, archiMate3Index }: Model, [key, values]: [string, any]) => {
       if (key === 'packagedElement') packagedElementIndex = values.reduce(packagedElementReducer, packagedElementIndex)
       else if (key.startsWith('ArchiMate3:ArchiMate_')) {
-        const [prefix, archimate3Type] = key.split('_')
-        if (prefix !== 'ArchiMate3:ArchiMate') throw Error(`invalid component prefix: ${key}`)
+        const archiMate3Type = key.replace('ArchiMate3:', '')
         const { type: archimate3Category, ids }: { type: string, ids: Set<string>} = values
           .map(({ $ }: any) => Object.entries($)[0])
           .map(([type, id]: any) => ({ type: type.split('_')[1], id }))
@@ -83,10 +82,10 @@ const mapModel = (xmi: any) => {
             return { type, ids }
           }, { type: '', ids: new Set<string>() })
         if (archiMate3Index[archimate3Category] === undefined) archiMate3Index[archimate3Category] = []
-        if (!archiMate3Index[archimate3Category].includes(archimate3Type)) archiMate3Index[archimate3Category].push(archimate3Type)
+        if (!archiMate3Index[archimate3Category].includes(archiMate3Type)) archiMate3Index[archimate3Category].push(archiMate3Type)
         for (const elementID of [...ids] as string[]) {
           if (elementIndex[elementID] !== undefined) throw Error(`collision with elementID ${elementID}`)
-          elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archimate3Type }
+          elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archiMate3Type }
         }
       } else {
         console.warn(`ignoring component prefix: ${key}`)
@@ -114,7 +113,7 @@ const mapExtensionElement = (_element: any) => {
   return element
 }
 
-const allowedDirections = ['Source -> Destination', 'Destination -> Source', 'Unspecified']
+const allowedDirections = ['Source -> Destination', 'Destination -> Source', 'Bi-Directional', 'Unspecified']
 const mapExtensionConnector = (_connector: any) => {
   // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
   // properties, style, , tags, times
@@ -181,8 +180,6 @@ const mapExtension = (xmi: any) => {
   return extension
 }
 
-export const getXmlFromFile = async (filePath: string) => await readFile(filePath, 'utf8').then(new Parser().parseStringPromise) as unknown
-
 export const mapDocumentation = (xmi: any): Documentation => {
   const { $ } = xmi?.['xmi:Documentation']?.[0] ?? {}
   const { exporter = '', exporterID = '', exporterVersion = '' } = $
@@ -193,7 +190,9 @@ export const mapDocumentation = (xmi: any): Documentation => {
   return documentation
 }
 
-export const mapExportedDocument = (rawDocument: any): ExportedDocument => {
+export const mapExportedDocument = async (rawDocument: string): Promise<ExportedDocument> => {
+  if (typeof rawDocument !== 'string') throw Error('invalid document type, must be string')
+  rawDocument = await (new Parser().parseStringPromise(rawDocument))
   if (typeof rawDocument !== 'object' || rawDocument === null || rawDocument?.['xmi:XMI'] === undefined) throw Error('invalid raw document')
   const xmi = rawDocument['xmi:XMI']
   const documentation = mapDocumentation(xmi)

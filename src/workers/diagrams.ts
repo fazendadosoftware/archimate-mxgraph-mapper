@@ -1,5 +1,6 @@
 import { Parser } from 'xml2js'
 import { expose } from 'comlink'
+import { mapExportedDocument } from '../helpers/xmlToJsonMapper'
 const { parseStringPromise } = new Parser()
 
 const sortElements = (elementA: IElement, elementB: IElement, connectorTree: Record<string, number>) => {
@@ -32,8 +33,10 @@ const getParentIndex = (document: any): Record<string, IElement> => {
 const mapId = (id: string = ''): string => id.replace(/^([A-Z]{4}_)/, '').replace(/_/g, '-').trim()
 
 export async function getDiagrams (xml: string) {
-  const document = await parseStringPromise(xml)
-  if (document['xmi:XMI'] === undefined) throw Error('invalid xml')
+  console.log('GETTING THE DIAGRAMS...')
+  const rawDocument = await parseStringPromise(xml)
+  const _document = mapExportedDocument(rawDocument)
+  if (rawDocument['xmi:XMI'] === undefined) throw Error('invalid xml')
   const {
     'xmi:XMI': {
       'xmi:Extension': [{
@@ -42,7 +45,7 @@ export async function getDiagrams (xml: string) {
         connectors: [{ connector: _connectors = [] } = { connector: [] }]
       } = { diagrams: [], elements: [], connectors: [] }] = []
     }
-  } = document
+  } = rawDocument
 
   const elements = _elements as IElement[]
   const connectors = _connectors as IConnector[]

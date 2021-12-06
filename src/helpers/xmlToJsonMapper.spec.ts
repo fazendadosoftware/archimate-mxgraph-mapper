@@ -1,20 +1,15 @@
-import {
-  getXmlFromFile,
-  mapExportedDocument
-} from './xmlToJsonMapper'
-import {
-  ExportedDocument
-} from '../types'
+import { mapExportedDocument } from './xmlToJsonMapper'
+import { ExportedDocument } from '../types'
+import { readFile } from 'fs/promises'
 
 const EXPORTED_XML_FILE_PATH = './test/data/TestExport.xml'
 
 describe('parsing the exported xml file', () => {
-  let rawDocument: any
   let document: ExportedDocument
 
   test('exported document has the correct structure', async () => {
-    rawDocument = await getXmlFromFile(EXPORTED_XML_FILE_PATH)
-    document = mapExportedDocument(rawDocument)
+    const fileContent = await readFile(EXPORTED_XML_FILE_PATH, 'utf-8')
+    document = await mapExportedDocument(fileContent)
     expect(document.exporter).toBe('Enterprise Architect')
     expect(document.exporterID).toBe('1554')
     expect(document.exporterVersion).toBe('6.5')
@@ -27,15 +22,6 @@ describe('parsing the exported xml file', () => {
   })
 
   test('exported document has the correct diagrams structure', async () => {
-    // index of element ids -> [diagram ids]
-    const exportedDiagramElementIndex = document.diagrams
-      .reduce((accumulator: Record<string, string[]>, diagram) => {
-        diagram.elements.forEach(element => {
-          if (accumulator[element.id] === undefined) accumulator[element.id] = []
-          if (!accumulator[element.id].includes(diagram.id)) accumulator[element.id].push(diagram.id)
-        })
-        return accumulator
-      }, {})
     document.diagrams
       .forEach(diagram => {
         expect(typeof diagram.id).toBe('string')
@@ -75,23 +61,14 @@ describe('parsing the exported xml file', () => {
           expect(typeof link.end).toBe('string')
           expect(typeof link.start).toBe('string')
           expect(typeof link.isExternal).toBe('boolean')
-          if (link.isExternal === false) {
+          if (!link.isExternal) {
             expect(diagramElementIds.includes(link.start)).toBe(true)
             expect(diagramElementIds.includes(link.end)).toBe(true)
           } else {
-            const startNodeInDiagram = diagramElementIds.includes(link.start) === true ? 1 : 0
-            const endNodeInDiagram = diagramElementIds.includes(link.end) === true ? 1 : 0
+            const startNodeInDiagram = diagramElementIds.includes(link.start) ? 1 : 0
+            const endNodeInDiagram = diagramElementIds.includes(link.end) ? 1 : 0
             // only one node in the link should belong to the diagram
             expect(startNodeInDiagram + endNodeInDiagram).toEqual(1)
-            const externalElementId = startNodeInDiagram === 0 ? link.start : link.end
-            const externalElementInOtherDiagrams = exportedDiagramElementIndex[externalElementId]
-            const externalElementIsPackagedElement = document.model.packagedElementIndex[externalElementId]
-            const externalElementInModel = document.model.elementIndex[externalElementId]
-            // external element id should be indexed in model element index
-            if (externalElementInOtherDiagrams === undefined) {
-              console.log('jijiji')
-            }
-            expect(externalElementInOtherDiagrams).not.toBeUndefined()
           }
         })
       })

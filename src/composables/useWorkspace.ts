@@ -6,7 +6,7 @@ import { Index } from 'flexsearch'
 import debounce from 'lodash.debounce'
 import { parseStringPromise, Builder } from 'xml2js'
 import useSwal from './useSwal'
-import { IDiagram } from '../workers/diagrams'
+import { Diagram } from '../types'
 
 const { toast } = useSwal()
 
@@ -100,7 +100,7 @@ const authenticate = async (host: string, apitoken: string) => {
 
 const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
 
-const enrichXml = async (diagram: IDiagram, xml: string): Promise<string> => {
+const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
   if (unref(factSheetIndex) === null) await buildFactSheetIndex(diagram)
   const graph = await parseStringPromise(xml)
   const { mxGraphModel: { root: [{ mxCell: cells = [] } = { mxCell: [] }] = [] } } = graph
@@ -142,15 +142,15 @@ const enrichXml = async (diagram: IDiagram, xml: string): Promise<string> => {
   return enrichedXml
 }
 
-const saveBookmark = async (diagram: IDiagram, xml: string, silent?: boolean) => {
+const saveBookmark = async (diagram: Diagram, xml: string, silent?: boolean) => {
   if (unref(accessToken) === null) throw Error('not authenticated')
   const bearer = unref(accessToken) ?? ''
   const { instanceUrl } = jwtDecode<{ instanceUrl: string }>(bearer)
   const url = `${instanceUrl}/services/pathfinder/v1/bookmarks`
 
   const graphXml = await enrichXml(diagram, xml)
-  const { name, documentation: description = '' } = diagram
-  const bookmark = { groupKey: 'freedraw', description, name, type: 'VISUALIZER', state: { graphXml } }
+  const { name } = diagram
+  const bookmark = { groupKey: 'freedraw', name, type: 'VISUALIZER', state: { graphXml } }
 
   const options = {
     method: 'POST',
@@ -202,7 +202,7 @@ const fetchWorkspaceDataModel = async () => {
   }
 }
 
-const buildFactSheetIndex = async (selectedDiagram: IDiagram) => {
+const buildFactSheetIndex = async (selectedDiagram: Diagram) => {
   factSheetIndex.value = null
   let query = `
         query($externalIds: [String!]) {

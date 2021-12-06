@@ -99,12 +99,11 @@
 import { ref, watch, unref, onBeforeUnmount } from 'vue'
 import ElementList from './ElementList.vue'
 import ConnectorList from './ConnectorList.vue'
-import StyleList from './StyleList.vue'
 import FactSheetList from './FactSheetList.vue'
 import useDiagrams from '../composables/useDiagrams'
 import useWorkspace from '../composables/useWorkspace'
 import useMXGraph from '../composables/useMXGraph'
-import { IDiagram } from '../workers/diagrams'
+import { Diagram } from '../types'
 
 const graph = ref(null)
 const outline = ref(null)
@@ -122,7 +121,7 @@ watch(selectedDiagram, () => {
 })
 
 watch(selectedBookmark, () => {
-  if (unref(selectedDiagram) !== null) toggleDiagramSelection(unref(selectedDiagram) as IDiagram)
+  if (unref(selectedDiagram) !== null) toggleDiagramSelection(unref(selectedDiagram) as Diagram)
 })
 
 watch([selectedDiagram, selectedBookmark], ([selectedDiagram, selectedBookmark]) => {

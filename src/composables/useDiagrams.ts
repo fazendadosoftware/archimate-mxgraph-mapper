@@ -1,5 +1,7 @@
 import DiagramsWorker from '../workers/diagrams?worker'
-import { IXmlWorker, IDiagram } from '../workers/diagrams'
+import { IXmlWorker } from '../workers/diagrams'
+import { mapExportedDocument } from '../helpers/xmlToJsonMapper'
+import { ExportedDocument, Diagram } from '../types'
 import { wrap, releaseProxy } from 'comlink'
 import { ref, Ref, unref, computed } from 'vue'
 import { Index } from 'flexsearch'
@@ -7,11 +9,12 @@ import useSwal from './useSwal'
 
 const { toast } = useSwal()
 
-const loadDiagramsFromXml = async (xml: string): Promise<any> => {
+const parseDocumentFromXml = async (xml: string): Promise<any> => {
   const proxy = wrap<IXmlWorker>(new DiagramsWorker())
   try {
-    const diagrams = await proxy.getDiagrams(xml)
-    return diagrams
+    const document = await mapExportedDocument(xml)
+    // const diagrams = await proxy.getDiagrams(xml)
+    return document
   } catch (err: any) {
     console.error(err)
     if (err.message === 'invalid xml') {
@@ -28,10 +31,10 @@ const loadDiagramsFromXml = async (xml: string): Promise<any> => {
 }
 
 // global state variables
-const diagramIndex: Ref<Map<number, IDiagram>> = ref(new Map())
-const selectedDiagram: Ref<IDiagram | null> = ref(null)
+const document: Ref<ExportedDocument | null> = ref(null)
+const selectedDiagram: Ref<Diagram | null> = ref(null)
 
-const isSelected = (diagram: IDiagram) => diagram.id === unref(selectedDiagram)?.id
+const isSelected = (diagram: Diagram) => diagram.id === unref(selectedDiagram)?.id
 
 const useDiagrams = () => {
   const searchQuery = ref('')
@@ -46,12 +49,7 @@ const useDiagrams = () => {
     reader.onload = async e => {
       const xml = e?.target?.result as string
       try {
-        diagramIndex.value = await loadDiagramsFromXml(xml)
-          .then(diagrams => diagrams
-            .reduce((accumulator: Map<number, IDiagram>, diagram: IDiagram) => {
-              accumulator.set(diagram.id, diagram)
-              return accumulator
-            }, new Map()))
+        document.value = await parseDocumentFromXml(xml)
       } catch (error) {
         console.error(error)
         void toast.fire({
@@ -59,10 +57,10 @@ const useDiagrams = () => {
           title: 'Error while loading xml file!',
           text: 'Check console for more details...'
         })
-        diagramIndex.value = new Map()
+        document.value = null
       } finally {
         ftsDiagramIndex = new Index()
-        Object.values(unref(diagramIndex)).forEach(({ id, name }) => ftsDiagramIndex.add(id, name))
+        unref(document)?.diagrams.forEach(({ id, name }) => ftsDiagramIndex.add(id, name))
         loading.value = false
       }
     }
@@ -73,18 +71,18 @@ const useDiagrams = () => {
     loadFile,
     searchQuery,
     loading: computed(() => unref(loading)),
-    hasDiagrams: computed(() => unref(diagramIndex).size > 0),
+    hasDiagrams: computed(() => unref(document)?.diagrams?.length ?? -1 > 0),
     filteredDiagrams: computed(() => {
-      if (unref(searchQuery) === '') return Array.from(unref(diagramIndex).values())
+      if (unref(searchQuery) === '') return unref(document)?.diagrams ?? []
       const filteredDiagrams = ftsDiagramIndex.search(unref(searchQuery))
-        .reduce((accumulator: IDiagram[], id) => {
-          const diagram = unref(diagramIndex).get(id as number)
+        .reduce((accumulator: Diagram[], id) => {
+          const diagram = unref(document)?.diagrams.find(({ id: _id }) => _id === id)
           if (diagram !== undefined) accumulator.push(diagram)
           return accumulator
         }, [])
       return filteredDiagrams
     }),
-    toggleDiagramSelection: (diagram: IDiagram) => { selectedDiagram.value = isSelected(diagram) ? null : diagram },
+    toggleDiagramSelection: (diagram: Diagram) => { selectedDiagram.value = isSelected(diagram) ? null : diagram },
     selectedDiagram: computed(() => unref(selectedDiagram)),
     isSelected
   }
