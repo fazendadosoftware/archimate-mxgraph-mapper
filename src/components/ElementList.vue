@@ -48,6 +48,6 @@ const columns = [
   { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
   { key: 'name', label: 'Name' },
   { key: 'id', label: 'ID' },
-  { key: 'parentId', label: 'Parent ID' }
+  { key: 'parent', label: 'Parent ID' }
 ]
 </script>

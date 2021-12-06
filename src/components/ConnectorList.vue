@@ -46,7 +46,7 @@ const props = defineProps({
 const { diagram } = toRefs(props)
 const columns = [
   { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
-  { key: 'sourceId', label: 'SourceID' },
-  { key: 'targetId', label: 'Target ID' }
+  { key: 'start', label: 'SourceID' },
+  { key: 'end', label: 'Target ID' }
 ]
 </script>
