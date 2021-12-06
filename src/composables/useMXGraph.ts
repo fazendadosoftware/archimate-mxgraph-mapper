@@ -45,7 +45,6 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
         } else {
           const vertexIndex: any = {}
           const defaultParent = _graph.getDefaultParent()
-
           diagram.elements
             .forEach((element: Element) => {
               const { id, parent, name, rect } = element
