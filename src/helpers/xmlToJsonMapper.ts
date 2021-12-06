@@ -14,7 +14,7 @@ import {
   ExtensionDiagramElement,
   Extension,
   Element,
-  Link,
+  Connector,
   Diagram
 } from '../types'
 
@@ -97,35 +97,39 @@ const mapModel = (xmi: any) => {
   return model
 }
 
-const mapExtensionElement = (_element: any) => {
+const mapExtensionElement = (_element: any, model: Model) => {
   // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
   // properties, style, , tags, times
   let { $, links: [links] = [null] } = _element ?? {}
   const { name = null, 'xmi:idref': id = null, 'xmi:type': type = null } = $
   if (links !== null) {
     links = Object.entries<Array<{ $: any }>>(links)
-      .reduce((accumulator: any[], [type, links]) => {
-        links.forEach(({ $: { 'xmi:id': id, end, start } }) => accumulator.push({ id, type, end, start }))
+      .reduce((accumulator: Connector[], [_category, links]) => {
+        links
+          .forEach(({ $: { 'xmi:id': id, end, start } }) => {
+            const { [id]: { type = null, category = null } = {} } = model.elementIndex
+            accumulator.push({ id, category, type, end, start, isExternal: null })
+          })
         return accumulator
       }, [])
   }
-  const element: ExtensionElement = { id, type, name, links }
+  const element: ExtensionElement = { id, type, name, connectors: links }
   return element
 }
 
 const allowedDirections = ['Source -> Destination', 'Destination -> Source', 'Bi-Directional', 'Unspecified']
-const mapExtensionConnector = (_connector: any) => {
+const mapExtensionConnector = (_connector: any, model: Model) => {
   // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
   // properties, style, , tags, times
   let {
     $: { 'xmi:idref': id },
     labels: [{ $: { mb: label } = { mb: '' } }],
-    properties: [{ $: { direction = 'Unspecified', ea_type: eaType, stereotype } }],
+    properties: [{ $: { direction = 'Unspecified', ea_type: category = null, stereotype: type = null } }],
     source: [{ $: { 'xmi:idref': sourceID = null } }],
     target: [{ $: { 'xmi:idref': targetID = null } }]
   } = _connector ?? {}
-  label = label.replace(/[^a-zA-Z_]/g, '')
-  const connector: ExtensionConnector = { id, label, direction, eaType, stereotype, sourceID, targetID }
+  if (typeof label === 'string') label = label.replace(/[^a-zA-Z_]/g, '')
+  const connector: ExtensionConnector = { id, label, direction, category, type, sourceID, targetID }
   if (!allowedDirections.includes(direction)) throw Error(`invalid connector direction: ${JSON.stringify(connector)}`)
   if (sourceID === null || targetID === null) throw Error(`invalid connector, source or target IDS are null: ${JSON.stringify(connector)}`)
   return connector
@@ -153,9 +157,9 @@ const mapDiagramElement = (_diagramElement: any) => {
 const mapExtensionDiagram = (_diagram: any) => {
   let {
     $: { 'xmi:id': id },
-    elements: [{ element: elements }],
-    project: [{ $: { author, created, modified, version } }],
-    properties: [{ $: { name, type } }]
+    elements: [{ element: elements }] = [{ element: [] }],
+    project: [{ $: { author = null, created = null, modified = null, version = null } }] = [{ $: {} }],
+    properties: [{ $: { name = null, type = null } }] = [{ $: {} }]
   } = _diagram
   elements = elements.map(mapDiagramElement)
   const project: ExtensionDiagramProject = { author, created, modified, version }
@@ -163,7 +167,7 @@ const mapExtensionDiagram = (_diagram: any) => {
   return diagram
 }
 
-const mapExtension = (xmi: any) => {
+const mapExtension = (xmi: any, model: Model) => {
   const { $: { extender = '', extenderID = '' } = {}, ..._extensions } = xmi?.['xmi:Extension']?.[0] ?? {}
   if (!isEqual(EXTENDER, { extender, extenderID })) throw Error('invalid model')
   // skipped properties: primitivetypes, profiles
@@ -173,8 +177,8 @@ const mapExtension = (xmi: any) => {
     elements: [{ element: elements }] = []
   } = _extensions
   if (!Array.isArray(elements)) throw Error(`invalid extensions: ${JSON.stringify(_extensions)}`)
-  elements = elements.map(mapExtensionElement)
-  connectors = connectors.map(mapExtensionConnector)
+  elements = elements.map(element => mapExtensionElement(element, model))
+  connectors = connectors.map((connector: any) => mapExtensionConnector(connector, model))
   diagrams = diagrams.map(mapExtensionDiagram)
   const extension: Extension = { extender, extenderID, connectors, diagrams, elements }
   return extension
@@ -197,7 +201,7 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
   const xmi = rawDocument['xmi:XMI']
   const documentation = mapDocumentation(xmi)
   const model = mapModel(xmi)
-  const extension = mapExtension(xmi)
+  const extension = mapExtension(xmi, model)
   const extensionElementIndex = extension.elements
     .reduce((accumulator: Record<string, ExtensionElement>, element) => {
       accumulator[element.id] = element
@@ -213,22 +217,22 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
           const {
             [diagramElement.id]: { hierarchyLevel, parent, children } = { hierarchyLevel: 0, parent: null, children: null }
           } = model.packagedElementIndex
-          const { [diagramElement.id]: { name = null, links = null } = {} } = extensionElementIndex
-          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children, links }
+          const { [diagramElement.id]: { name = null, connectors = null } = {} } = extensionElementIndex
+          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children, connectors }
           return element
         }).sort(({ hierarchyLevel: A }, { hierarchyLevel: B }) => A > B ? 1 : A < B ? -1 : 0)
       const diagramElementIds = new Set(elements.map(({ id }) => id))
-      const linkIndex = elements
-        .reduce((accumulator: Record<string, Link>, element) => {
-          accumulator = (element?.links ?? []).reduce((accumulator, link) => {
-            const { start, end } = link
+      const connectorIndex = elements
+        .reduce((accumulator: Record<string, Connector>, element) => {
+          accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
+            const { start, end } = connector
             const isExternal = !(diagramElementIds.has(start) && diagramElementIds.has(end))
-            return { ...accumulator, [link.id]: { ...link, isExternal } }
+            return { ...accumulator, [connector.id]: { ...connector, isExternal } }
           }, accumulator)
           return accumulator
         }, {})
-      const links = Object.values(linkIndex)
-      const diagram: Diagram = { ...extensionDiagram, elements, links }
+      const connectors = Object.values(connectorIndex)
+      const diagram: Diagram = { ...extensionDiagram, elements, connectors }
       return diagram
     })
   const exportedDocument: ExportedDocument = { ...documentation, diagrams, model }

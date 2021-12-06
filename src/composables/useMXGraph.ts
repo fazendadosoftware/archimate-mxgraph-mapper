@@ -1,7 +1,7 @@
 import mxgraph from '../helpers/mxgraph-shims'
 import '../helpers/mxArchimate3Shapes'
 import useSwal from './useSwal'
-import { IElement, IConnector, IDiagram } from '../workers/diagrams'
+import { Diagram, Element, Connector } from '../types'
 import styles from '../assets/data/styles.json'
 import { ref, unref, Ref, computed } from 'vue'
 
@@ -20,16 +20,9 @@ interface DrawGraphProps {
   undoListener: any
 }
 
-const getStyle = (data: IElement | IConnector) => {
-  const { type, style: _style } = data
-  const style = styleIndex[type]
-  if (type !== undefined && type !== '' && style === undefined) {
-    console.warn(`No style defined for type ${type}`, JSON.parse(JSON.stringify(data)))
-  }
-  return style ?? _style
-}
+const getStyle = (type: string | null) => type === null ? null : styleIndex[type] ?? null
 
-const drawGraph = (props: DrawGraphProps, data: unknown) => {
+const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
   const { graphContainer, outlineContainer, undoManager, graph, outline, undoListener } = props
 
   const graphContainerEl = unref(graphContainer)
@@ -43,29 +36,31 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
       const _graph = new MXGraph(graphContainerEl)
       _graph.getModel().beginUpdate()
       try {
-        if (data === null) {
+        if (diagram === null) {
           throw Error('null data')
-        } else if (typeof data === 'string') {
-          const doc = mxUtils.parseXml(data)
+        } else if (typeof diagram === 'string') {
+          const doc = mxUtils.parseXml(diagram)
           const codec = new MXCodec(doc)
           codec.decode(doc.documentElement, _graph.getModel())
         } else {
-          const { elements = [], connectors = [] } = data as {elements: IElement[], connectors: IConnector[]}
           const vertexIndex: any = {}
           const defaultParent = _graph.getDefaultParent()
 
-          elements
-            .forEach((element: IElement) => {
-              const { id, parentId, name, geometry } = element
-              vertexIndex[id] = _graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(element))
+          diagram.elements
+            .forEach((element: Element) => {
+              const { id, parent, name, rect } = element
+              const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
+              const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
+              const style = getStyle(element.type)
+              if (style !== null && geometry !== null) vertexIndex[id] = _graph.insertVertex(parentNode, id, name, ...geometry, style)
             })
 
-          connectors
-            .forEach((connector: IConnector) => {
-              const { id, sourceId, targetId } = connector
-              const sourceVertex = vertexIndex[sourceId]
-              const targetVertex = vertexIndex[targetId]
-              _graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(connector))
+          diagram.connectors
+            .forEach((connector: Connector) => {
+              const sourceVertex = vertexIndex[connector.start]
+              const targetVertex = vertexIndex[connector.end]
+              const style = getStyle(connector.type)
+              if (style !== null) _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
             })
         }
       } finally {
@@ -73,7 +68,7 @@ const drawGraph = (props: DrawGraphProps, data: unknown) => {
         graph.value = _graph
       }
       unref(outline)?.outline?.destroy()
-      if (data !== null) {
+      if (diagram !== null) {
         outline.value = new MXOutline(_graph, outlineContainerEl)
         _graph.getModel().addListener(mxEvent.UNDO, undoListener)
         _graph.getView().addListener(mxEvent.UNDO, undoListener)
@@ -110,7 +105,7 @@ const useMXGraph = (props: UseMXGraphProps) => {
   }
   const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
   return {
-    drawGraph: (data: unknown) => drawGraph(drawGraphProps, data),
+    drawGraph: (data: Diagram) => drawGraph(drawGraphProps, data),
     getXml: () => getXml(graph),
     styleIndex: computed(() => styleIndex),
     undoManager,
@@ -118,7 +113,7 @@ const useMXGraph = (props: UseMXGraphProps) => {
   }
 }
 
-const generateXmlFromDiagram = async (diagram: IDiagram): Promise<string> => {
+const generateXmlFromDiagram = async (diagram: Diagram): Promise<string> => {
   const el = document.createElement('div')
   const graph = new MXGraph(el)
   graph.getModel().beginUpdate()
@@ -128,17 +123,21 @@ const generateXmlFromDiagram = async (diagram: IDiagram): Promise<string> => {
     const defaultParent = graph.getDefaultParent()
 
     elements
-      .forEach((element: IElement) => {
-        const { id, parentId, name, geometry } = element
-        vertexIndex[id] = graph.insertVertex(vertexIndex[parentId] ?? defaultParent, id, name, ...geometry, getStyle(element))
+      .forEach((element: Element) => {
+        const { id, parent, name, rect } = element
+        const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
+        const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
+        const style = getStyle(element.type)
+        if (geometry !== null && style !== null) vertexIndex[id] = graph.insertVertex(parentNode, id, name, ...geometry, style)
       })
 
     connectors
-      .forEach((connector: IConnector) => {
-        const { id, sourceId, targetId } = connector
-        const sourceVertex = vertexIndex[sourceId]
-        const targetVertex = vertexIndex[targetId]
-        graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, getStyle(connector))
+      .forEach((connector: Connector) => {
+        const { id, start, end } = connector
+        const sourceVertex = vertexIndex[start]
+        const targetVertex = vertexIndex[end]
+        const style = getStyle(connector.type)
+        if (style !== null) graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, style)
       })
   } finally {
     graph.getModel().endUpdate()

@@ -33,7 +33,7 @@ describe('parsing the exported xml file', () => {
         expect(typeof diagram.project.created).toBe('string')
         expect(typeof diagram.project.modified).toBe('string')
         expect(Array.isArray(diagram.elements)).toBe(true)
-        expect(Array.isArray(diagram.links)).toBe(true)
+        expect(Array.isArray(diagram.connectors)).toBe(true)
         diagram.elements.forEach(element => {
           expect(typeof element.id).toBe('string')
           expect(typeof element.id).toBeTruthy()
@@ -55,18 +55,21 @@ describe('parsing the exported xml file', () => {
 
         const diagramElementIds = diagram.elements.map(({ id }) => id)
 
-        diagram.links.forEach(link => {
-          expect(typeof link.id).toBe('string')
-          expect(typeof link.type).toBe('string')
-          expect(typeof link.end).toBe('string')
-          expect(typeof link.start).toBe('string')
-          expect(typeof link.isExternal).toBe('boolean')
-          if (!link.isExternal) {
-            expect(diagramElementIds.includes(link.start)).toBe(true)
-            expect(diagramElementIds.includes(link.end)).toBe(true)
+        diagram.connectors.forEach(connector => {
+          expect(typeof connector.id).toBe('string')
+          expect(connector).toHaveProperty('type')
+          expect(connector).toHaveProperty('category')
+          if (connector.type === null) expect(connector.category).toBe(null)
+          if (typeof connector.type === 'string') expect(typeof connector.type).toBe('string')
+          expect(typeof connector.end).toBe('string')
+          expect(typeof connector.start).toBe('string')
+          expect(typeof connector.isExternal).toBe('boolean')
+          if (connector.isExternal === false) {
+            expect(diagramElementIds.includes(connector.start)).toBe(true)
+            expect(diagramElementIds.includes(connector.end)).toBe(true)
           } else {
-            const startNodeInDiagram = diagramElementIds.includes(link.start) ? 1 : 0
-            const endNodeInDiagram = diagramElementIds.includes(link.end) ? 1 : 0
+            const startNodeInDiagram = diagramElementIds.includes(connector.start) ? 1 : 0
+            const endNodeInDiagram = diagramElementIds.includes(connector.end) ? 1 : 0
             // only one node in the link should belong to the diagram
             expect(startNodeInDiagram + endNodeInDiagram).toEqual(1)
           }
