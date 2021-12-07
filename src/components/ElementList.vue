@@ -47,6 +47,7 @@ const { diagram } = toRefs(props)
 const columns = [
   { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
   { key: 'name', label: 'Name' },
+  { key: 'seqno', label: 'Seq. No.' },
   { key: 'id', label: 'ID' },
   { key: 'parent', label: 'Parent ID' }
 ]

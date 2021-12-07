@@ -10,4 +10,6 @@ export interface Element extends ExtensionDiagramElement {
   parent: string | null
   children: string[] | null
   connectors: Connector[] | null
+  isOmmited: boolean
+  notes: string[]
 }

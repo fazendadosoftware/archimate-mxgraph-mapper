@@ -211,26 +211,33 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
   // we need to create a link index from elements
   const diagrams = extension.diagrams
     .map(extensionDiagram => {
-      const elements = extensionDiagram.elements
-        .map(diagramElement => {
+      const elementIndex = extensionDiagram.elements
+        .reduce((accumulator: Record<string, Element>, diagramElement) => {
           const { [diagramElement.id]: { type = null, category = null } = { type: null, category: null } } = model.elementIndex
           const {
             [diagramElement.id]: { hierarchyLevel, parent, children } = { hierarchyLevel: 0, parent: null, children: null }
           } = model.packagedElementIndex
           const { [diagramElement.id]: { name = null, connectors = null } = {} } = extensionElementIndex
-          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children, connectors }
-          return element
-        }).sort(({ hierarchyLevel: A }, { hierarchyLevel: B }) => A > B ? 1 : A < B ? -1 : 0)
-      const diagramElementIds = new Set(elements.map(({ id }) => id))
-      const connectorIndex = elements
+          const isOmmited = false
+          const notes: string[] = []
+          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children, connectors, isOmmited, notes }
+          accumulator[element.id] = element
+          return accumulator
+        }, {})
+      const connectorIndex = Object.values(elementIndex)
         .reduce((accumulator: Record<string, Connector>, element) => {
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
             const { start, end } = connector
-            const isExternal = !(diagramElementIds.has(start) && diagramElementIds.has(end))
+            const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
             return { ...accumulator, [connector.id]: { ...connector, isExternal } }
           }, accumulator)
           return accumulator
         }, {})
+
+      const elements = Object.values(elementIndex)
+        .filter(element => connectorIndex[element.id] === undefined)
+        .sort(({ seqno: A = 0 }, { seqno: B = 0 }) => A > B ? -1 : A < B ? 1 : 0)
+
       const connectors = Object.values(connectorIndex)
       const diagram: Diagram = { ...extensionDiagram, elements, connectors }
       return diagram
