@@ -10,7 +10,6 @@ const { toast } = useSwal()
 
 const parseDocumentFromXml = async (xml: string, file: File & { path: string }): Promise<any> => {
   const proxy = wrap<IMapperWorker>(new MapperWorker())
-  // const proxy = wrap<IXmlWorker>(new DiagramsWorker())
   try {
     const document = await proxy.mapExportedDocument(xml)
     document.file = file
