@@ -3,19 +3,18 @@
     <div
       v-if="selectedDiagram !== null"
       class="border-b border-gray-200 sticky top-0 bg-white z-50">
-      <nav class="-mb-px flex space-x-4 px-2" aria-label="Tabs">
+      <nav class="-mb-px flex px-2" aria-label="Tabs">
         <!-- Current: "border-indigo-500 text-indigo-600", Default: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" -->
         <div
           v-for="tab in viewTabs"
           :key="tab.key"
-          class="border-transparent text-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-xs cursor-pointer"
+          class="border-transparent text-gray-500 whitespace-nowrap p-4 border-b-2 font-medium text-xs cursor-pointer select-none"
           :class="{
             'border-indigo-500 text-indigo-600': view === tab.key,
             'hover:text-gray-700 hover:border-gray-300': view !== tab.key
           }"
-          @click="view = tab.key">
-          {{ tab.label }}
-        </div>
+          @click="view = tab.key"
+          v-html="typeof tab.labelMapFn === 'function' ? tab.labelMapFn(selectedDiagram) : tab.label" />
       </nav>
     </div>
     <div v-show="view === 'diagram'" ref="graph" class="flex-1 overflow-auto" />
@@ -76,21 +75,19 @@
       <element-list v-if="selectedDiagram" :diagram="selectedDiagram" />
     </div>
     <div
+      v-if="view === 'suppressedElementList'"
+      class="flex-1 overflow-auto bg-gray-200">
+      <suppressed-element-list v-if="selectedDiagram" :diagram="selectedDiagram" />
+    </div>
+    <div
       v-if="view === 'connectorList'"
       class="flex-1 overflow-auto bg-gray-200">
       <connector-list v-if="selectedDiagram" :diagram="selectedDiagram" />
     </div>
-    <!--
     <div
-      v-if="view === 'styleList'"
+      v-if="view === 'diagramJsonOutput'"
       class="flex-1 overflow-auto bg-gray-200">
-      <style-list v-if="selectedDiagram" :diagram="selectedDiagram" />
-    </div>
-    -->
-    <div
-      v-if="view === 'factSheetList'"
-      class="flex-1 overflow-auto bg-gray-200">
-      <fact-sheet-list v-if="selectedDiagram" :diagram="selectedDiagram" />
+      <diagram-json-output v-if="selectedDiagram" :diagram="selectedDiagram" />
     </div>
   </div>
 </template>
@@ -98,8 +95,9 @@
 <script lang="ts" setup>
 import { ref, watch, unref, onBeforeUnmount } from 'vue'
 import ElementList from './ElementList.vue'
+import SuppressedElementList from './SuppressedElementList.vue'
 import ConnectorList from './ConnectorList.vue'
-import FactSheetList from './FactSheetList.vue'
+import DiagramJsonOutput from './DiagramJsonOutput.vue'
 import useDiagrams from '../composables/useDiagrams'
 import useWorkspace from '../composables/useWorkspace'
 import useMXGraph from '../composables/useMXGraph'
@@ -107,6 +105,9 @@ import { Diagram } from '../types'
 
 const graph = ref(null)
 const outline = ref(null)
+
+const elements = ref<Element[]>([])
+const suppressedElements = ref<Element[]>([])
 
 const { drawGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
 const { selectedDiagram, toggleDiagramSelection } = useDiagrams()
@@ -118,6 +119,14 @@ watch([isAuthenticated, selectedDiagram], ([isAuthenticated, selectedDiagram]) =
 
 watch(selectedDiagram, () => {
   if (unref(selectedBookmark) !== null) toggleBookmarkSelection(unref(selectedBookmark))
+  const { _elements, _suppressedElements } = unref(selectedDiagram)?.elements
+    .reduce((accumulator: any, element) => {
+      if (element.isOmmited) accumulator._suppressedElements.push(element)
+      else accumulator._elements.push(element)
+      return accumulator
+    }, { _elements: [], _suppressedElements: [] }) ?? { _elements: [], _suppressedElements: [] }
+  elements.value = _elements
+  suppressedElements.value = _suppressedElements
 })
 
 watch(selectedBookmark, () => {
@@ -132,10 +141,23 @@ watch([selectedDiagram, selectedBookmark], ([selectedDiagram, selectedBookmark])
 
 const viewTabs = [
   { key: 'diagram', label: 'Diagram' },
-  { key: 'elementList', label: 'Element List' },
-  { key: 'connectorList', label: 'Connector List' },
-  // { key: 'styleList', label: 'Style List' },
-  { key: 'factSheetList', label: 'FactSheet list' }
+  {
+    key: 'elementList',
+    label: 'Elements',
+    labelMapFn: (diagram: Diagram) => `<span>Elements <span class="font-bold">(${diagram.elements.filter(({ isOmmited }) => !isOmmited).length})</span></span>`
+  },
+  {
+    key: 'suppressedElementList',
+    labelMapFn: (diagram: Diagram) => `<span>Suppressed Elements <span class="font-bold">(${diagram.elements.filter(({ isOmmited }) => isOmmited).length})</span></span>`
+  },
+  {
+    key: 'connectorList',
+    labelMapFn: (diagram: Diagram) => `<span>Connectors <span class="font-bold">(${diagram.connectors.length})</span></span>`
+  },
+  {
+    key: 'diagramJsonOutput',
+    label: 'JSON output'
+  }
 ]
 const view = ref('diagram')
 
@@ -154,6 +176,6 @@ const wheelListener = (evt: WheelEvent) => {
   }
 }
 
-const listener = window.addEventListener('wheel', wheelListener)
+window.addEventListener('wheel', wheelListener)
 onBeforeUnmount(() => window.removeEventListener('wheel', wheelListener))
 </script>

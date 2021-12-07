@@ -224,6 +224,7 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
           accumulator[element.id] = element
           return accumulator
         }, {})
+
       const connectorIndex = Object.values(elementIndex)
         .reduce((accumulator: Record<string, Connector>, element) => {
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
@@ -236,6 +237,13 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
 
       const elements = Object.values(elementIndex)
         .filter(element => connectorIndex[element.id] === undefined)
+        .map(element => {
+          if (element.type === null) element.notes.push('element has no type')
+          if (element.name === null) element.notes.push('element has no name')
+          if (element.rect === null) element.notes.push('element has no geometry')
+          element = { ...element, isOmmited: element.notes.length > 0 }
+          return element
+        })
         .sort(({ seqno: A = 0 }, { seqno: B = 0 }) => A > B ? -1 : A < B ? 1 : 0)
 
       const connectors = Object.values(connectorIndex)
