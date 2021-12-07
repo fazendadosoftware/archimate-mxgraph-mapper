@@ -8,11 +8,12 @@ import useSwal from './useSwal'
 
 const { toast } = useSwal()
 
-const parseDocumentFromXml = async (xml: string): Promise<any> => {
+const parseDocumentFromXml = async (xml: string, file: File & { path: string }): Promise<any> => {
   const proxy = wrap<IMapperWorker>(new MapperWorker())
   // const proxy = wrap<IXmlWorker>(new DiagramsWorker())
   try {
     const document = await proxy.mapExportedDocument(xml)
+    document.file = file
     return document
   } catch (err: any) {
     console.error(err)
@@ -43,12 +44,14 @@ const useDiagrams = () => {
   const loadFile = (event: any) => {
     loading.value = true
     const { target: { files } } = event
-    if (files.length === 0) return
+    const file: File & { path: string } = files[0] ?? null
+    if (file === null) return
     const reader = new FileReader()
     reader.onload = async e => {
       const xml = e?.target?.result as string
       try {
-        document.value = await parseDocumentFromXml(xml)
+        const { name, path, size, lastModified } = file
+        document.value = await parseDocumentFromXml(xml, { name, path, size, lastModified })
       } catch (error) {
         console.error(error)
         void toast.fire({
