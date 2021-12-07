@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white p-4 overflow-hidden h-full flex flex-column">
+  <div class="bg-white overflow-hidden h-full flex flex-column">
     <div ref="container" class="flex-1 bg-red-300" />
   </div>
 </template>
