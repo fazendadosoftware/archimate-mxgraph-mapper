@@ -18,7 +18,7 @@ const container = ref<HTMLElement | null>(null)
 const editor = ref<JSONEditor | null>(null)
 const editorOptions: JSONEditorOptions = {
   name: 'diagram',
-  mode: 'tree'
+  mode: 'view'
 }
 onMounted(() => {
   console.log()
