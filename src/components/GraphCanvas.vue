@@ -17,8 +17,11 @@
           v-html="typeof tab.labelMapFn === 'function' ? tab.labelMapFn(selectedDiagram) : tab.label" />
       </nav>
     </div>
-    <div v-show="view === 'diagram'" ref="graph" class="flex-1 overflow-auto" />
-    <div v-show="view === 'diagram'" ref="outline" class="absolute bottom-0 left-0 border border-gray-400" />
+    <div v-if="document !== null && selectedDiagram === null" class="flex-1 overflow-auto bg-gray-200">
+      <document-visualizer />
+    </div>
+    <div v-show="view === 'diagram' && selectedDiagram !== null" ref="graph" class="flex-1 overflow-auto" />
+    <div v-show="view === 'diagram' && selectedDiagram !== null" ref="outline" class="absolute bottom-0 left-0 border border-gray-400" />
     <div v-if="view === 'diagram' && selectedDiagram !== null" class="absolute top-24 mt-4 right-0">
       <span class="relative z-0 inline-flex shadow-sm rounded-md transform rotate-90">
         <button
@@ -94,6 +97,7 @@
 
 <script lang="ts" setup>
 import { ref, watch, unref, onBeforeUnmount } from 'vue'
+import DocumentVisualizer from './DocumentJsonVisualizer.vue'
 import ElementList from './ElementList.vue'
 import SuppressedElementList from './SuppressedElementList.vue'
 import ConnectorList from './ConnectorList.vue'
@@ -110,7 +114,7 @@ const elements = ref<Element[]>([])
 const suppressedElements = ref<Element[]>([])
 
 const { drawGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
-const { selectedDiagram, toggleDiagramSelection } = useDiagrams()
+const { document, selectedDiagram, toggleDiagramSelection } = useDiagrams()
 const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, isSavingBookmark, saveBookmark, buildFactSheetIndex, fetchVisualizerBookmarks } = useWorkspace()
 
 watch([isAuthenticated, selectedDiagram], ([isAuthenticated, selectedDiagram]) => {

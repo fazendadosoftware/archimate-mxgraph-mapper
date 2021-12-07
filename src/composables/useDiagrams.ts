@@ -1,6 +1,5 @@
-import DiagramsWorker from '../workers/diagrams?worker'
-import { IXmlWorker } from '../workers/diagrams'
-import { mapExportedDocument } from '../helpers/xmlToJsonMapper'
+import MapperWorker from '../helpers/xmlToJsonMapper?worker'
+import { IMapperWorker } from '../helpers/xmlToJsonMapper'
 import { ExportedDocument, Diagram } from '../types'
 import { wrap, releaseProxy } from 'comlink'
 import { ref, Ref, unref, computed } from 'vue'
@@ -10,10 +9,10 @@ import useSwal from './useSwal'
 const { toast } = useSwal()
 
 const parseDocumentFromXml = async (xml: string): Promise<any> => {
-  const proxy = wrap<IXmlWorker>(new DiagramsWorker())
+  const proxy = wrap<IMapperWorker>(new MapperWorker())
+  // const proxy = wrap<IXmlWorker>(new DiagramsWorker())
   try {
-    const document = await mapExportedDocument(xml)
-    // const diagrams = await proxy.getDiagrams(xml)
+    const document = await proxy.mapExportedDocument(xml)
     return document
   } catch (err: any) {
     console.error(err)
@@ -84,7 +83,8 @@ const useDiagrams = () => {
     }),
     toggleDiagramSelection: (diagram: Diagram) => { selectedDiagram.value = isSelected(diagram) ? null : diagram },
     selectedDiagram: computed(() => unref(selectedDiagram)),
-    isSelected
+    isSelected,
+    document: computed(() => unref(document))
   }
 }
 

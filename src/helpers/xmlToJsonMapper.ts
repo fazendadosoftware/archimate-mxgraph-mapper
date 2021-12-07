@@ -1,6 +1,6 @@
-// import { readFile } from 'fs/promises'
 import { Parser } from 'xml2js'
 import isEqual from 'lodash.isequal'
+import { expose } from 'comlink'
 import {
   ExportedDocument,
   Documentation,
@@ -67,8 +67,9 @@ const mapModel = (xmi: any) => {
   const { $ = {}, ..._models } = xmi?.['uml:Model']?.[0] ?? {}
   const { name, visibility, 'xmi:type': type } = $
   if (!isEqual(MODEL, { name, visibility, type })) throw Error('invalid model')
+  console.log('MODELS', _models)
   const model = Object.entries(_models)
-    .reduce(({ packagedElementIndex, elementIndex, archiMate3Index }: Model, [key, values]: [string, any]) => {
+    .reduce(({ packagedElementIndex, elementIndex, archiMate3Index, unknownIndex }: Model, [key, values]: [string, any]) => {
       if (key === 'packagedElement') packagedElementIndex = values.reduce(packagedElementReducer, packagedElementIndex)
       else if (key.startsWith('ArchiMate3:ArchiMate_')) {
         const archiMate3Type = key.replace('ArchiMate3:', '')
@@ -88,12 +89,14 @@ const mapModel = (xmi: any) => {
           elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archiMate3Type }
         }
       } else {
+        unknownIndex[key] = Array.isArray(values) ? values.map(({ $ }: any = {}) => $) : values
         console.warn(`ignoring component prefix: ${key}`)
       }
-      return { packagedElementIndex, elementIndex, archiMate3Index }
-    }, { packagedElementIndex: {}, elementIndex: {}, archiMate3Index: {} })
+      return { packagedElementIndex, elementIndex, archiMate3Index, unknownIndex }
+    }, { packagedElementIndex: {}, elementIndex: {}, archiMate3Index: {}, unknownIndex: {} })
   model.archiMate3Index = Object.entries(model.archiMate3Index)
     .reduce((accumulator, [archimate3Category, archimate3Types]) => ({ ...accumulator, [archimate3Category]: archimate3Types.sort() }), {})
+  console.log('MODEL', model)
   return model
 }
 
@@ -253,3 +256,9 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
   const exportedDocument: ExportedDocument = { ...documentation, diagrams, model }
   return exportedDocument
 }
+
+export interface IMapperWorker {
+  mapExportedDocument: (rawDocument: string) => Promise<ExportedDocument>
+}
+
+expose({ mapExportedDocument })

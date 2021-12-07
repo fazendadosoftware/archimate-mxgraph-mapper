@@ -6,4 +6,5 @@ export interface Model {
   packagedElementIndex: PackagedElementIndex
   elementIndex: ModelElementIndex
   archiMate3Index: Record<ArchiMate3Category, ArchiMate3Type[]>
+  unknownIndex: Record<string, any[]>
 }

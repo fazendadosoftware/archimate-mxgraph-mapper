@@ -9,8 +9,6 @@ import { toRefs, ref, onMounted, unref, onBeforeUnmount, watch } from 'vue'
 import { Diagram } from '../types'
 import JSONEditor, { JSONEditorOptions } from 'jsoneditor'
 import 'jsoneditor/dist/jsoneditor.min.css'
-// import VueJsonPretty from 'vue-json-pretty'
-// import 'vue-json-pretty/lib/styles.css'
 
 const props = defineProps<{ diagram: Diagram }>()
 const { diagram } = toRefs(props)
