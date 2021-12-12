@@ -103,73 +103,47 @@ const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.i
 
 const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
   if (unref(factSheetIndex) === null) await buildFactSheetIndex(diagram)
+
+  const doc = create()
+  const _root = doc.ele('mxGraphModel').ele('root')
   // @ts-expect-error
-  const mxCells = (convert(xml, { format: 'object' })?.mxGraphModel?.root?.mxCell ?? [])
-    .reduce((accumulator: any, mxCell: any, seqno: number) => {
+  convert(xml, { format: 'object' })?.mxGraphModel?.root?.mxCell
+    .forEach((mxCell: any) => {
       const { attrs, children } = Object.entries(mxCell)
         .reduce((accumulator: any, [key, value]) => {
           if (key[0] === '@') accumulator.attrs[key.substring(1)] = value
           else accumulator.children.push({ [key]: value })
           return accumulator
         }, { attrs: {}, children: [] })
-      const { id } = attrs
+      const { id, ...mxCellAttrs } = attrs
       const { [id]: factSheet = null } = unref(factSheetIndex)
-      accumulator.push({ ...attrs, children, factSheet })
-      return accumulator
-    }, [])
-  console.log('GMX CELLS', mxCells)
-  const graph = await parseStringPromise(xml)
-  const { mxGraphModel: { root: [{ mxCell: cells = [] } = { mxCell: [] }] = [] } } = graph
-
-  const { mxCell, object } = cells
-    .reduce((accumulator: any, cell: any, seqno) => {
-      const { $: { id = null } } = cell
-      const { [id]: factSheet = null } = unref(factSheetIndex)
-      if (factSheet === null) accumulator.mxCell.push({ ...cell, seqno, ele: 'mxCell' })
-      else {
-        delete cell.$.id
-        delete cell.$.value
-        accumulator.object.push({
-          $: {
-            type: 'factSheet',
-            autoSize: 1,
-            layoutType: 'auto',
-            collapsed: 1,
-            resourceId: factSheet.id,
-            label: factSheet.name,
-            resource: factSheet.type,
-            subType: '',
-            factSheetId: factSheet.id,
-            id: id
-          },
-          mxCell: cell,
-          seqno,
-          ele: 'object'
-        })
-      }
-      return accumulator
-    }, { mxCell: [], object: [] })
-
-  const children = [...mxCell, ...object]
-    .sort(({ seqno: A }, { seqno: B }) => A > B ? 1 : A < B ? -1 : 0)
-
-  const doc = create()
-  const root = doc.ele('mxGraphModel').ele('root')
-  children
-    .forEach(child => {
-      const { $: attrs, ele, mxCell = null, mxGeometry: [{ $: mxGeometry }] = [{ $: null }] } = child
-      if (ele === 'mxCell') {
-        const mxCell = root.ele(ele, attrs)
-        if (mxGeometry !== null) mxCell.ele('mxGeometry', mxGeometry)
-      } else if (ele === 'object') {
-        const object = root.ele(ele, attrs)
-        if (mxCell !== null) {
-          const { $: attrs, mxGeometry: [{ $: mxGeometry }] = [{ $: null }] } = mxCell
-          object.ele('mxCell', attrs).ele('mxGeometry', mxGeometry)
+      let _rootEle = _root
+      if (factSheet !== null) {
+        const objectAttrs = {
+          type: 'factSheet',
+          autoSize: 1,
+          layoutType: 'auto',
+          collapsed: 1,
+          resourceId: factSheet.id,
+          label: factSheet.name,
+          resource: factSheet.type,
+          subType: '',
+          factSheetId: factSheet.id,
+          id: id
         }
+        _rootEle = _root.ele('object', objectAttrs)
+        delete mxCellAttrs.value
+      }
+      const _mxCell = _rootEle.ele('mxCell', factSheet === null ? { ...mxCellAttrs, id } : mxCellAttrs)
+      const [{ mxGeometry } = { mxGeometry: null }] = children ?? []
+      if (mxGeometry !== null) {
+        const mxGeometryAttrs = Object.entries(mxGeometry).reduce((accumulator, [key, value]) => ({ ...accumulator, [key.substring(1)]: value }), {})
+        _mxCell.ele('mxGeometry', mxGeometryAttrs)
       }
     })
-  const enrichedXml = doc.end({ prettyPrint: true })
+
+  const enrichedXml = doc.end({ headless: true, prettyPrint: true })
+  console.log(enrichedXml)
   return enrichedXml
 }
 
