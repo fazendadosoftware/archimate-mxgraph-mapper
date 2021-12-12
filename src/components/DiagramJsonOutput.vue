@@ -19,7 +19,6 @@ const editorOptions: JSONEditorOptions = {
   mode: 'view'
 }
 onMounted(() => {
-  console.log()
   const _container = unref(container)
   if (_container !== null) editor.value = new JSONEditor(_container, editorOptions, unref(diagram))
 })

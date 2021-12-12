@@ -4,7 +4,6 @@ import jwtDecode from 'jwt-decode'
 import { format } from 'date-fns'
 import { Index } from 'flexsearch'
 import debounce from 'lodash.debounce'
-import { parseStringPromise } from 'xml2js'
 import { create, convert } from 'xmlbuilder2'
 import useSwal from './useSwal'
 import { Diagram } from '../types'
@@ -143,7 +142,6 @@ const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
     })
 
   const enrichedXml = doc.end({ headless: true, prettyPrint: true })
-  console.log(enrichedXml)
   return enrichedXml
 }
 
