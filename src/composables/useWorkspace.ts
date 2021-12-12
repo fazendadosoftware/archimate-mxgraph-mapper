@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { Index } from 'flexsearch'
 import debounce from 'lodash.debounce'
 import { parseStringPromise, Builder } from 'xml2js'
+import { create } from 'xmlbuilder2'
 import useSwal from './useSwal'
 import { Diagram } from '../types'
 
@@ -105,10 +106,10 @@ const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
   const graph = await parseStringPromise(xml)
   const { mxGraphModel: { root: [{ mxCell: cells = [] } = { mxCell: [] }] = [] } } = graph
   const { mxCell, object } = cells
-    .reduce((accumulator: any, cell: any) => {
+    .reduce((accumulator: any, cell: any, seqno) => {
       const { $: { id = null } } = cell
-      const { [id]: factSheet = null } = factSheetIndex
-      if (factSheet === null) accumulator.mxCell.push(cell)
+      const { [id]: factSheet = null } = unref(factSheetIndex)
+      if (factSheet === null) accumulator.mxCell.push({ ...cell, seqno })
       else {
         delete cell.$.id
         delete cell.$.value
@@ -125,11 +126,15 @@ const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
             factSheetId: factSheet.id,
             id: id
           },
-          mxCell: cell
+          mxCell: cell,
+          seqno
         })
       }
       return accumulator
     }, { mxCell: [], object: [] })
+  const sorted = [...mxCell, ...object]
+    .sort(({ seqno: A }, { seqno: B }) => A > B ? 1 : A < B ? -1 : 0)
+  console.log('SORTED', sorted)
   const enrichedGraph = {
     mxGraphModel: {
       root: {
@@ -139,6 +144,7 @@ const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
     }
   }
   const enrichedXml = new Builder({ headless: true }).buildObject(enrichedGraph)
+  console.log('ENRICHED', enrichedXml)
   return enrichedXml
 }
 
@@ -285,7 +291,7 @@ const useWorkspace = () => {
       return filteredDiagrams
     }),
     selectedBookmark: computed(() => unref(selectedBookmark)),
-    toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
+    toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark; console.log(bookmark) },
     isSelected,
     getDate,
     jwtClaims,

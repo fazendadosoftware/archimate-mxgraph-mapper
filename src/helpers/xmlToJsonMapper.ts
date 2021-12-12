@@ -67,7 +67,6 @@ const mapModel = (xmi: any) => {
   const { $ = {}, ..._models } = xmi?.['uml:Model']?.[0] ?? {}
   const { name, visibility, 'xmi:type': type } = $
   if (!isEqual(MODEL, { name, visibility, type })) throw Error('invalid model')
-  console.log('MODELS', _models)
   const model = Object.entries(_models)
     .reduce(({ packagedElementIndex, elementIndex, archiMate3Index, unknownIndex }: Model, [key, values]: [string, any]) => {
       if (key === 'packagedElement') packagedElementIndex = values.reduce(packagedElementReducer, packagedElementIndex)
@@ -96,7 +95,6 @@ const mapModel = (xmi: any) => {
     }, { packagedElementIndex: {}, elementIndex: {}, archiMate3Index: {}, unknownIndex: {} })
   model.archiMate3Index = Object.entries(model.archiMate3Index)
     .reduce((accumulator, [archimate3Category, archimate3Types]) => ({ ...accumulator, [archimate3Category]: archimate3Types.sort() }), {})
-  console.log('MODEL', model)
   return model
 }
 
