@@ -4,9 +4,9 @@ import jwtDecode from 'jwt-decode'
 import { format } from 'date-fns'
 import { Index } from 'flexsearch'
 import debounce from 'lodash.debounce'
-import { parseStringPromise, Builder } from 'xml2js'
+import { create, convert } from 'xmlbuilder2'
 import useSwal from './useSwal'
-import { IDiagram } from '../workers/diagrams'
+import { Diagram } from '../types'
 
 const { toast } = useSwal()
 
@@ -100,57 +100,60 @@ const authenticate = async (host: string, apitoken: string) => {
 
 const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
 
-const enrichXml = async (diagram: IDiagram, xml: string): Promise<string> => {
+const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
   if (unref(factSheetIndex) === null) await buildFactSheetIndex(diagram)
-  const graph = await parseStringPromise(xml)
-  const { mxGraphModel: { root: [{ mxCell: cells = [] } = { mxCell: [] }] = [] } } = graph
-  const { mxCell, object } = cells
-    .reduce((accumulator: any, cell: any) => {
-      const { $: { id = null } } = cell
-      const { [id]: factSheet = null } = factSheetIndex
-      if (factSheet === null) accumulator.mxCell.push(cell)
-      else {
-        delete cell.$.id
-        delete cell.$.value
-        accumulator.object.push({
-          $: {
-            type: 'factSheet',
-            autoSize: 1,
-            layoutType: 'auto',
-            collapsed: 1,
-            resourceId: factSheet.id,
-            label: factSheet.name,
-            resource: factSheet.type,
-            subType: '',
-            factSheetId: factSheet.id,
-            id: id
-          },
-          mxCell: cell
-        })
+
+  const doc = create()
+  const _root = doc.ele('mxGraphModel').ele('root')
+  // @ts-expect-error
+  convert(xml, { format: 'object' })?.mxGraphModel?.root?.mxCell
+    .forEach((mxCell: any) => {
+      const { attrs, children } = Object.entries(mxCell)
+        .reduce((accumulator: any, [key, value]) => {
+          if (key[0] === '@') accumulator.attrs[key.substring(1)] = value
+          else accumulator.children.push({ [key]: value })
+          return accumulator
+        }, { attrs: {}, children: [] })
+      const { id, ...mxCellAttrs } = attrs
+      const { [id]: factSheet = null } = unref(factSheetIndex)
+      let _rootEle = _root
+      if (factSheet !== null) {
+        const objectAttrs = {
+          type: 'factSheet',
+          autoSize: 1,
+          layoutType: 'auto',
+          collapsed: 1,
+          resourceId: factSheet.id,
+          label: factSheet.name,
+          resource: factSheet.type,
+          subType: '',
+          factSheetId: factSheet.id,
+          id: id
+        }
+        _rootEle = _root.ele('object', objectAttrs)
+        delete mxCellAttrs.value
       }
-      return accumulator
-    }, { mxCell: [], object: [] })
-  const enrichedGraph = {
-    mxGraphModel: {
-      root: {
-        mxCell,
-        object
+      const _mxCell = _rootEle.ele('mxCell', factSheet === null ? { ...mxCellAttrs, id } : mxCellAttrs)
+      const [{ mxGeometry } = { mxGeometry: null }] = children ?? []
+      if (mxGeometry !== null) {
+        const mxGeometryAttrs = Object.entries(mxGeometry).reduce((accumulator, [key, value]) => ({ ...accumulator, [key.substring(1)]: value }), {})
+        _mxCell.ele('mxGeometry', mxGeometryAttrs)
       }
-    }
-  }
-  const enrichedXml = new Builder({ headless: true }).buildObject(enrichedGraph)
+    })
+
+  const enrichedXml = doc.end({ headless: true, prettyPrint: true })
   return enrichedXml
 }
 
-const saveBookmark = async (diagram: IDiagram, xml: string, silent?: boolean) => {
+const saveBookmark = async (diagram: Diagram, xml: string, silent?: boolean) => {
   if (unref(accessToken) === null) throw Error('not authenticated')
   const bearer = unref(accessToken) ?? ''
   const { instanceUrl } = jwtDecode<{ instanceUrl: string }>(bearer)
   const url = `${instanceUrl}/services/pathfinder/v1/bookmarks`
 
   const graphXml = await enrichXml(diagram, xml)
-  const { name, documentation: description = '' } = diagram
-  const bookmark = { groupKey: 'freedraw', description, name, type: 'VISUALIZER', state: { graphXml } }
+  const { name } = diagram
+  const bookmark = { groupKey: 'freedraw', name, type: 'VISUALIZER', state: { graphXml } }
 
   const options = {
     method: 'POST',
@@ -202,7 +205,7 @@ const fetchWorkspaceDataModel = async () => {
   }
 }
 
-const buildFactSheetIndex = async (selectedDiagram: IDiagram) => {
+const buildFactSheetIndex = async (selectedDiagram: Diagram) => {
   factSheetIndex.value = null
   let query = `
         query($externalIds: [String!]) {
@@ -285,7 +288,7 @@ const useWorkspace = () => {
       return filteredDiagrams
     }),
     selectedBookmark: computed(() => unref(selectedBookmark)),
-    toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
+    toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark; console.log(bookmark) },
     isSelected,
     getDate,
     jwtClaims,

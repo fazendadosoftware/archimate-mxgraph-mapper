@@ -1,6 +1,6 @@
 import { ExtensionDiagramElement } from './extensionDiagram'
 import { ArchiMate3Type, ArchiMate3Category } from './modelElement.d'
-import { Link } from './link'
+import { Connector } from './connector.d'
 
 export interface Element extends ExtensionDiagramElement {
   name: string | null
@@ -9,5 +9,7 @@ export interface Element extends ExtensionDiagramElement {
   hierarchyLevel: number
   parent: string | null
   children: string[] | null
-  links: Link[] | null
+  connectors: Connector[] | null
+  isOmmited: boolean
+  notes: string[]
 }

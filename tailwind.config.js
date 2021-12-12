@@ -5,11 +5,18 @@ module.exports = {
     extend: {
       scale: {
         '-1': '-1'
+      },
+      colors: {
+        blue: {
+          json: '#3883fa'
+        }
       }
     },
   },
   variants: {
-    extend: {},
+    extend: {
+      backgroundColor: ['even']
+    },
   },
   plugins: [],
 }

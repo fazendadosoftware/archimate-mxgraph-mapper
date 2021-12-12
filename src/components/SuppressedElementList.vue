@@ -2,7 +2,7 @@
   <div class="flex flex-col p-2">
     <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
       <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-        <div class=" overflow-hidden border-b border-gray-200 sm:rounded">
+        <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded">
           <table class="min-w-full divide-y divide-gray-200 table-auto">
             <thead class="bg-gray-400 text-white">
               <tr>
@@ -17,18 +17,15 @@
             </thead>
             <tbody>
               <tr
-                v-for="connector in diagram.connectors"
-                :key="connector.id"
+                v-for="element in suppressedElements"
+                :key="element.id"
                 class="bg-white even:bg-gray-100 hover:bg-gray-200 transition-colors cursor-default">
                 <td
                   v-for="column in columns"
-                  :key="`${column.key}_${connector.id}`"
+                  :key="`${column.key}_${element.id}`"
                   class="px-3 py-2 text-xs text-gray-500"
                   :class="column.classes">
-                  <template v-if="!column.component">
-                    {{ connector[column.key] }}
-                  </template>
-                  <component :is="typeof column.component === 'function' ? column.component(connector) : column.component" v-else :row="connector" />
+                  {{ typeof column.mapFn === 'function' ? column.mapFn(element) : element[column.key] }}
                 </td>
               </tr>
             </tbody>
@@ -40,18 +37,15 @@
 </template>
 
 <script lang="ts" setup>
-import { toRefs, ComputedRef, computed } from 'vue'
-import { Connector, Diagram } from '../types'
-import ExternalConnectorMarker from './ExternalConnectorMarker.vue'
+import { toRefs, computed, unref } from 'vue'
+import { Diagram, Element } from '../types'
 
 const props = defineProps<{ diagram: Diagram }>()
-
 const { diagram } = toRefs(props)
+const suppressedElements = computed(() => unref(diagram).elements.filter(({ isOmmited }) => isOmmited))
 
-const columns: ComputedRef<{ key: keyof Connector, label: string, classes?: string, mapFn?: (element: Element) => string, component?: any }[]> = computed(() => [
-  { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
-  { key: 'start', label: 'SourceID' },
-  { key: 'end', label: 'Target ID' },
-  { key: 'isExternal', label: 'Is External?', component: (connector: Connector) => connector.isExternal ? ExternalConnectorMarker : null }
-])
+const columns: { key: keyof Element, label: string, classes?: string, mapFn?: (element: Element) => string }[] = [
+  { key: 'id', label: 'ID' },
+  { key: 'notes', label: 'Notes', mapFn: (element: Element) => element.notes.join(', ') }
+]
 </script>

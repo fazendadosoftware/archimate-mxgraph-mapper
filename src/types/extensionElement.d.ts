@@ -1,7 +1,7 @@
-import { Link } from './link'
+import { Connector } from './connector'
 export interface ExtensionElement {
   id: string
   type: string
   name?: string
-  links: Link[] | null
+  connectors: Connector[] | null
 }

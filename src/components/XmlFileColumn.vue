@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col space-y-2 bg-white">
+  <div class="flex flex-col space-y-2 bg-gray-200">
     <search-input-component
       v-model="searchQuery"
       class="mt-2 px-2"
@@ -38,7 +38,7 @@
       <button
         v-for="diagram in filteredDiagrams"
         :key="diagram.id"
-        class="transition-colors px-2 py-1 text-xs rounded-md cursor-pointer shadow-md border border-gray-400"
+        class="transition-colors px-2 py-1 text-xs rounded cursor-pointer border border-gray-300"
         :class="{
           'bg-yellow-300 bg-opacity-50 hover:bg-opacity-100': isSelected(diagram),
           'bg-white hover:bg-yellow-100': !isSelected(diagram)
@@ -47,9 +47,8 @@
         {{ diagram.name }}
       </button>
     </div>
-    <div v-if="hasDiagrams && isImported === false" class="flex justify-center p-2 bg-gray-200 border-t border-gray-300">
+    <div v-if="hasDiagrams && isImported === false && isAuthenticated" class="flex justify-center p-2 bg-white border-t border-gray-300">
       <button
-        v-if="isAuthenticated"
         v-wave
         class="inline-flex items-center justify-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-500 focus:outline-none focus:ring-0"
         :class="{

@@ -1,6 +1,6 @@
-import { readFile } from 'fs/promises'
 import { Parser } from 'xml2js'
 import isEqual from 'lodash.isequal'
+import { expose } from 'comlink'
 import {
   ExportedDocument,
   Documentation,
@@ -14,7 +14,7 @@ import {
   ExtensionDiagramElement,
   Extension,
   Element,
-  Link,
+  Connector,
   Diagram
 } from '../types'
 
@@ -68,11 +68,10 @@ const mapModel = (xmi: any) => {
   const { name, visibility, 'xmi:type': type } = $
   if (!isEqual(MODEL, { name, visibility, type })) throw Error('invalid model')
   const model = Object.entries(_models)
-    .reduce(({ packagedElementIndex, elementIndex, archiMate3Index }: Model, [key, values]: [string, any]) => {
+    .reduce(({ packagedElementIndex, elementIndex, archiMate3Index, unknownIndex }: Model, [key, values]: [string, any]) => {
       if (key === 'packagedElement') packagedElementIndex = values.reduce(packagedElementReducer, packagedElementIndex)
       else if (key.startsWith('ArchiMate3:ArchiMate_')) {
-        const [prefix, archimate3Type] = key.split('_')
-        if (prefix !== 'ArchiMate3:ArchiMate') throw Error(`invalid component prefix: ${key}`)
+        const archiMate3Type = key.replace('ArchiMate3:', '')
         const { type: archimate3Category, ids }: { type: string, ids: Set<string>} = values
           .map(({ $ }: any) => Object.entries($)[0])
           .map(([type, id]: any) => ({ type: type.split('_')[1], id }))
@@ -83,50 +82,55 @@ const mapModel = (xmi: any) => {
             return { type, ids }
           }, { type: '', ids: new Set<string>() })
         if (archiMate3Index[archimate3Category] === undefined) archiMate3Index[archimate3Category] = []
-        if (!archiMate3Index[archimate3Category].includes(archimate3Type)) archiMate3Index[archimate3Category].push(archimate3Type)
+        if (!archiMate3Index[archimate3Category].includes(archiMate3Type)) archiMate3Index[archimate3Category].push(archiMate3Type)
         for (const elementID of [...ids] as string[]) {
           if (elementIndex[elementID] !== undefined) throw Error(`collision with elementID ${elementID}`)
-          elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archimate3Type }
+          elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archiMate3Type }
         }
       } else {
+        unknownIndex[key] = Array.isArray(values) ? values.map(({ $ }: any = {}) => $) : values
         console.warn(`ignoring component prefix: ${key}`)
       }
-      return { packagedElementIndex, elementIndex, archiMate3Index }
-    }, { packagedElementIndex: {}, elementIndex: {}, archiMate3Index: {} })
+      return { packagedElementIndex, elementIndex, archiMate3Index, unknownIndex }
+    }, { packagedElementIndex: {}, elementIndex: {}, archiMate3Index: {}, unknownIndex: {} })
   model.archiMate3Index = Object.entries(model.archiMate3Index)
     .reduce((accumulator, [archimate3Category, archimate3Types]) => ({ ...accumulator, [archimate3Category]: archimate3Types.sort() }), {})
   return model
 }
 
-const mapExtensionElement = (_element: any) => {
+const mapExtensionElement = (_element: any, model: Model) => {
   // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
   // properties, style, , tags, times
   let { $, links: [links] = [null] } = _element ?? {}
   const { name = null, 'xmi:idref': id = null, 'xmi:type': type = null } = $
   if (links !== null) {
     links = Object.entries<Array<{ $: any }>>(links)
-      .reduce((accumulator: any[], [type, links]) => {
-        links.forEach(({ $: { 'xmi:id': id, end, start } }) => accumulator.push({ id, type, end, start }))
+      .reduce((accumulator: Connector[], [_category, links]) => {
+        links
+          .forEach(({ $: { 'xmi:id': id, end, start } }) => {
+            const { [id]: { type = null, category = null } = {} } = model.elementIndex
+            accumulator.push({ id, category, type, end, start, isExternal: null })
+          })
         return accumulator
       }, [])
   }
-  const element: ExtensionElement = { id, type, name, links }
+  const element: ExtensionElement = { id, type, name, connectors: links }
   return element
 }
 
-const allowedDirections = ['Source -> Destination', 'Destination -> Source', 'Unspecified']
-const mapExtensionConnector = (_connector: any) => {
+const allowedDirections = ['Source -> Destination', 'Destination -> Source', 'Bi-Directional', 'Unspecified']
+const mapExtensionConnector = (_connector: any, model: Model) => {
   // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
   // properties, style, , tags, times
   let {
     $: { 'xmi:idref': id },
     labels: [{ $: { mb: label } = { mb: '' } }],
-    properties: [{ $: { direction = 'Unspecified', ea_type: eaType, stereotype } }],
+    properties: [{ $: { direction = 'Unspecified', ea_type: category = null, stereotype: type = null } }],
     source: [{ $: { 'xmi:idref': sourceID = null } }],
     target: [{ $: { 'xmi:idref': targetID = null } }]
   } = _connector ?? {}
-  label = label.replace(/[^a-zA-Z_]/g, '')
-  const connector: ExtensionConnector = { id, label, direction, eaType, stereotype, sourceID, targetID }
+  if (typeof label === 'string') label = label.replace(/[^a-zA-Z_]/g, '')
+  const connector: ExtensionConnector = { id, label, direction, category, type, sourceID, targetID }
   if (!allowedDirections.includes(direction)) throw Error(`invalid connector direction: ${JSON.stringify(connector)}`)
   if (sourceID === null || targetID === null) throw Error(`invalid connector, source or target IDS are null: ${JSON.stringify(connector)}`)
   return connector
@@ -154,9 +158,9 @@ const mapDiagramElement = (_diagramElement: any) => {
 const mapExtensionDiagram = (_diagram: any) => {
   let {
     $: { 'xmi:id': id },
-    elements: [{ element: elements }],
-    project: [{ $: { author, created, modified, version } }],
-    properties: [{ $: { name, type } }]
+    elements: [{ element: elements }] = [{ element: [] }],
+    project: [{ $: { author = null, created = null, modified = null, version = null } }] = [{ $: {} }],
+    properties: [{ $: { name = null, type = null } }] = [{ $: {} }]
   } = _diagram
   elements = elements.map(mapDiagramElement)
   const project: ExtensionDiagramProject = { author, created, modified, version }
@@ -164,7 +168,7 @@ const mapExtensionDiagram = (_diagram: any) => {
   return diagram
 }
 
-const mapExtension = (xmi: any) => {
+const mapExtension = (xmi: any, model: Model) => {
   const { $: { extender = '', extenderID = '' } = {}, ..._extensions } = xmi?.['xmi:Extension']?.[0] ?? {}
   if (!isEqual(EXTENDER, { extender, extenderID })) throw Error('invalid model')
   // skipped properties: primitivetypes, profiles
@@ -174,14 +178,12 @@ const mapExtension = (xmi: any) => {
     elements: [{ element: elements }] = []
   } = _extensions
   if (!Array.isArray(elements)) throw Error(`invalid extensions: ${JSON.stringify(_extensions)}`)
-  elements = elements.map(mapExtensionElement)
-  connectors = connectors.map(mapExtensionConnector)
+  elements = elements.map(element => mapExtensionElement(element, model))
+  connectors = connectors.map((connector: any) => mapExtensionConnector(connector, model))
   diagrams = diagrams.map(mapExtensionDiagram)
   const extension: Extension = { extender, extenderID, connectors, diagrams, elements }
   return extension
 }
-
-export const getXmlFromFile = async (filePath: string) => await readFile(filePath, 'utf8').then(new Parser().parseStringPromise) as unknown
 
 export const mapDocumentation = (xmi: any): Documentation => {
   const { $ } = xmi?.['xmi:Documentation']?.[0] ?? {}
@@ -193,12 +195,14 @@ export const mapDocumentation = (xmi: any): Documentation => {
   return documentation
 }
 
-export const mapExportedDocument = (rawDocument: any): ExportedDocument => {
+export const mapExportedDocument = async (rawDocument: string): Promise<ExportedDocument> => {
+  if (typeof rawDocument !== 'string') throw Error('invalid document type, must be string')
+  rawDocument = await (new Parser().parseStringPromise(rawDocument))
   if (typeof rawDocument !== 'object' || rawDocument === null || rawDocument?.['xmi:XMI'] === undefined) throw Error('invalid raw document')
   const xmi = rawDocument['xmi:XMI']
   const documentation = mapDocumentation(xmi)
   const model = mapModel(xmi)
-  const extension = mapExtension(xmi)
+  const extension = mapExtension(xmi, model)
   const extensionElementIndex = extension.elements
     .reduce((accumulator: Record<string, ExtensionElement>, element) => {
       accumulator[element.id] = element
@@ -208,30 +212,51 @@ export const mapExportedDocument = (rawDocument: any): ExportedDocument => {
   // we need to create a link index from elements
   const diagrams = extension.diagrams
     .map(extensionDiagram => {
-      const elements = extensionDiagram.elements
-        .map(diagramElement => {
+      const elementIndex = extensionDiagram.elements
+        .reduce((accumulator: Record<string, Element>, diagramElement) => {
           const { [diagramElement.id]: { type = null, category = null } = { type: null, category: null } } = model.elementIndex
           const {
             [diagramElement.id]: { hierarchyLevel, parent, children } = { hierarchyLevel: 0, parent: null, children: null }
           } = model.packagedElementIndex
-          const { [diagramElement.id]: { name = null, links = null } = {} } = extensionElementIndex
-          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children, links }
-          return element
-        }).sort(({ hierarchyLevel: A }, { hierarchyLevel: B }) => A > B ? 1 : A < B ? -1 : 0)
-      const diagramElementIds = new Set(elements.map(({ id }) => id))
-      const linkIndex = elements
-        .reduce((accumulator: Record<string, Link>, element) => {
-          accumulator = (element?.links ?? []).reduce((accumulator, link) => {
-            const { start, end } = link
-            const isExternal = !(diagramElementIds.has(start) && diagramElementIds.has(end))
-            return { ...accumulator, [link.id]: { ...link, isExternal } }
+          const { [diagramElement.id]: { name = null, connectors = null } = {} } = extensionElementIndex
+          const isOmmited = false
+          const notes: string[] = []
+          const element: Element = { ...diagramElement, type, category, name, hierarchyLevel, parent, children, connectors, isOmmited, notes }
+          accumulator[element.id] = element
+          return accumulator
+        }, {})
+
+      const connectorIndex = Object.values(elementIndex)
+        .reduce((accumulator: Record<string, Connector>, element) => {
+          accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
+            const { start, end } = connector
+            const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
+            return { ...accumulator, [connector.id]: { ...connector, isExternal } }
           }, accumulator)
           return accumulator
         }, {})
-      const links = Object.values(linkIndex)
-      const diagram: Diagram = { ...extensionDiagram, elements, links }
+
+      const elements = Object.values(elementIndex)
+        .filter(element => connectorIndex[element.id] === undefined)
+        .map(element => {
+          if (element.type === null) element.notes.push('element has no type')
+          if (element.name === null) element.notes.push('element has no name')
+          if (element.rect === null) element.notes.push('element has no geometry')
+          element = { ...element, isOmmited: element.notes.length > 0 }
+          return element
+        })
+        .sort(({ seqno: A = 0 }, { seqno: B = 0 }) => A > B ? -1 : A < B ? 1 : 0)
+
+      const connectors = Object.values(connectorIndex)
+      const diagram: Diagram = { ...extensionDiagram, elements, connectors }
       return diagram
     })
   const exportedDocument: ExportedDocument = { ...documentation, diagrams, model }
   return exportedDocument
 }
+
+export interface IMapperWorker {
+  mapExportedDocument: (rawDocument: string) => Promise<ExportedDocument>
+}
+
+expose({ mapExportedDocument })

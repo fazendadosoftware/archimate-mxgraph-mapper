@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col pt-2 px-2 space-y-2 bg-white">
+  <div class="flex flex-col pt-2 px-2 space-y-2 bg-gray-200">
     <authenticate-button />
     <search-input
       v-if="isAuthenticated"
@@ -12,7 +12,7 @@
         <div
           v-for="bookmark in filteredBookmarks.filter((bookmark: any) => bookmarkHasXml(bookmark))"
           :key="bookmark.id"
-          class="transition-colors px-2 py-1 text-xs rounded-md cursor-pointer shadow-md border border-gray-400"
+          class="transition-colors px-2 py-1 text-xs rounded cursor-pointer border border-gray-300"
           :class="{
             'bg-yellow-300 bg-opacity-50 hover:bg-opacity-100': isSelected(bookmark),
             'bg-white hover:bg-yellow-100': !isSelected(bookmark),
@@ -31,7 +31,7 @@
         </div>
       </div>
     </div>
-    <current-workspace class="-mx-2 px-2 py-2 bg-gray-200" />
+    <current-workspace class="-mx-2 px-2 py-2 bg-white" />
   </div>
 </template>
 

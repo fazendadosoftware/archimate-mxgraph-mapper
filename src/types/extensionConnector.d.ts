@@ -8,8 +8,8 @@ export interface ExtensionConnector {
   id: string
   label?: string
   direction: 'Source -> Destination' | 'Destination -> Source' | 'Unspecified'
-  eaType: string
-  stereotype?: string
+  category: string | null
+  type: string | null
   sourceID: string
   targetID: string
 }

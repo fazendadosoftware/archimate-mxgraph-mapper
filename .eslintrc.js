@@ -27,6 +27,7 @@ module.exports = {
   rules: {
     'no-unused-vars': 'off',
     'vue/script-setup-uses-vars': 'error',
+    'vue/no-v-html': 'off',
     'vue/max-attributes-per-line': 'off',
     'vue/html-closing-bracket-newline': 'off',
     'vue/require-default-prop': 'off',

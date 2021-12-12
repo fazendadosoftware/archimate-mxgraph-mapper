@@ -4,7 +4,7 @@
     class="cursor-pointer select-none">
     <span
       v-wave
-      class="w-full relative border-box inline-flex justify-center items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-indigo-600 focus:outline-none focus:ring-0"
+      class="w-full relative border-box inline-flex justify-center items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-blue-json focus:outline-none focus:ring-0"
       :class="{
         'opacity-50 animate-pulse': isAuthenticating,
         'hover:bg-indigo-700': !isAuthenticating
