@@ -50,6 +50,7 @@ const useDiagrams = () => {
       const xml = e?.target?.result as string
       try {
         const { name, path, size, lastModified } = file
+        // @ts-expect-error
         document.value = await parseDocumentFromXml(xml, { name, path, size, lastModified })
       } catch (error) {
         console.error(error)
