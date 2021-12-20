@@ -1,7 +1,7 @@
 {
   "name": "archimate-mxgraph-mapper",
   "author": "LeanIX GmbH",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "main": "electron/electron.js",
   "repository": {

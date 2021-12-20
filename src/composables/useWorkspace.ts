@@ -10,6 +10,8 @@ import { Diagram } from '../types'
 
 const { toast } = useSwal()
 
+const EXTERNAL_ID_DEFAULT_PATH = 'externalId'
+
 const isAuthenticating = ref(false)
 const accessToken: Ref<null | string> = ref(null)
 const loading = ref(0)
@@ -20,6 +22,7 @@ const ftsBookmarkIndex = ref(new Index())
 const savingBookmark = ref(0)
 const isSavingBookmark = computed(() => unref(savingBookmark) > 0)
 const factSheetIndex: any = ref(null)
+const externalIdPath = ref<string | null>(null)
 
 watch(bookmarkIndex, bookmarkIndex => {
   ftsBookmarkIndex.value = new Index()
@@ -85,6 +88,7 @@ const authenticate = async (host: string, apitoken: string) => {
     isAuthenticating.value = true
     accessToken.value = await getAccessToken(host, apitoken)
     await fetchVisualizerBookmarks()
+    await checkExternalIdPath()
   } catch (err) {
     console.error(err)
     void toast.fire({
@@ -205,6 +209,15 @@ const fetchWorkspaceDataModel = async () => {
   }
 }
 
+const checkExternalIdPath = async () => {
+  const dataModel = await fetchWorkspaceDataModel()
+  const factSheetTypes = Object.keys(dataModel.factSheets)
+  const sparxIdFactSheetTypes = new Set(dataModel.externalIdFields?.sparxId?.forFactSheets ?? [])
+  const hasMissingFactSheetTypes = [...factSheetTypes].filter(x => !sparxIdFactSheetTypes.has(x)).length > 0
+  externalIdPath.value = hasMissingFactSheetTypes ? EXTERNAL_ID_DEFAULT_PATH : 'sparxId'
+  return unref(externalIdPath)
+}
+
 const buildFactSheetIndex = async (selectedDiagram: Diagram) => {
   factSheetIndex.value = null
   let query = `
@@ -224,26 +237,32 @@ const buildFactSheetIndex = async (selectedDiagram: Diagram) => {
   const bearer = unref(accessToken)
   if (bearer === null || unref(jwtClaims) === null) throw Error('not authenticated')
   const { instanceUrl }: { instanceUrl: string } = unref(jwtClaims)
-  const factSheetTypes = await fetchWorkspaceDataModel()
-    .then(dataModel => Object.keys(dataModel.factSheets))
+  const externalIdPath = await checkExternalIdPath()
+  const dataModel = await fetchWorkspaceDataModel()
+  const factSheetTypes = Object.keys(dataModel.factSheets)
   const factSheetTypeExternalIdFragment = factSheetTypes
-    .map(factSheetType => `...on ${factSheetType}{externalId{externalId}}`)
+    .map(factSheetType => `...on ${factSheetType}{${externalIdPath}{externalId}}`)
     .join(' ')
   query = query.replace('{{factSheetTypeExternalIdPlaceholder}}', factSheetTypeExternalIdFragment)
-  const externalIds = unref(selectedDiagram).elements.map(({ id }: { id: string }) => `externalId/${id}`)
-  const options = {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, variables: { externalIds } })
-  }
+  const externalIds = unref(selectedDiagram).elements.map(({ id }: { id: string }) => `${externalIdPath}/${id}`)
+  const headers = { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' }
+  const body = JSON.stringify({ query, variables: { externalIds } })
+  const options = { method: 'POST', headers, body }
   const response = await fetch(`${instanceUrl}/services/pathfinder/v1/graphql`, options)
   const { status } = response
-  const body = await response.json()
   if (status === 200) {
-    const { data: { allFactSheets: { edges = [] } } } = body
+    const responseJson = await response.json()
+    console.log('RESPONSE JSIN', responseJson)
+    let edges = []
+    const { data = null, errors = null } = responseJson
+    if (errors?.length > 0) {
+      factSheetIndex.value = null
+      throw Error(JSON.stringify(errors))
+    }
+    if (data !== null) ({ allFactSheets: { edges = [] } } = data)
     const fsIndex = edges
       .reduce((accumulator: any, { node: factSheet }: any) => {
-        const { externalId: { externalId } } = factSheet
+        const { [externalIdPath]: { externalId } } = factSheet
         accumulator[externalId] = factSheet
         return accumulator
       }, {})
@@ -295,7 +314,8 @@ const useWorkspace = () => {
     saveBookmark,
     isSavingBookmark,
     factSheetIndex: computed(() => unref(factSheetIndex)),
-    buildFactSheetIndex: (diagram: any) => { factSheetIndex.value = null; void debouncedBuildFactSheetIndex(diagram) }
+    buildFactSheetIndex: (diagram: any) => { factSheetIndex.value = null; void debouncedBuildFactSheetIndex(diagram) },
+    externalIdPath: computed(() => unref(externalIdPath))
   }
 }
 
