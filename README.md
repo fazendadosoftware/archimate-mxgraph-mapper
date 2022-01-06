@@ -4,9 +4,9 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/fazendadosoftware/archimate-mxgraph-mapper/total)
 
 ## Binaries
-* [Windows](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.3/Archimate-MXGraph-Mapper-Setup-0.4.3.exe)
-* [Mac](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.3/Archimate-MXGraph-Mapper-0.4.3.dmg)
-* [Linux](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.3/Archimate-MXGraph-Mapper-0.4.3.AppImage)
+* [Windows](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.4/Archimate-MXGraph-Mapper-Setup-0.4.4.exe)
+* [Mac](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.4/Archimate-MXGraph-Mapper-0.4.4.dmg)
+* [Linux](https://github.com/fazendadosoftware/archimate-mxgraph-mapper/releases/download/v0.4.4/Archimate-MXGraph-Mapper-0.4.4.AppImage)
 
 # Scripts
 
