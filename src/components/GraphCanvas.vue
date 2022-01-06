@@ -105,8 +105,10 @@ import DiagramJsonOutput from './DiagramJsonOutput.vue'
 import useDiagrams from '../composables/useDiagrams'
 import useWorkspace from '../composables/useWorkspace'
 import useMXGraph from '../composables/useMXGraph'
+import useSwal from '../composables/useSwal'
 import { Diagram } from '../types'
 
+const { toast } = useSwal()
 const graph = ref(null)
 const outline = ref(null)
 
@@ -175,8 +177,8 @@ const save = async () => {
 // capture CTRL + mousewheel events for zooming the graph
 const wheelListener = (evt: WheelEvent) => {
   if (unref(graphInstance) !== null && evt.ctrlKey) {
-    const zoomIn = evt.deltaY === 100
-    zoomIn ? unref(graphInstance)?.zoomIn() : unref(graphInstance)?.zoomOut()
+    const zoomOut = evt.deltaY === 100
+    zoomOut ? unref(graphInstance)?.zoomOut() : unref(graphInstance)?.zoomIn()
   }
 }
 

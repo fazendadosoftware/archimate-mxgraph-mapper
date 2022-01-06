@@ -51,6 +51,9 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
               const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
               const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
               const style = getStyle(element.type)
+              if (style === null && ((element?.type) != null)) {
+                throw Error(`null style for element type ${element?.type ?? 'undefined'}`)
+              }
               if (style !== null && geometry !== null) vertexIndex[id] = _graph.insertVertex(parentNode, id, name, ...geometry, style)
             })
 

@@ -22,5 +22,10 @@
   "ArchiMate_Composition": "html=1;endArrow=diamondThin;endFill=1;edgeStyle=elbowEdgeStyle;elbow=vertical;endSize=10;",
   "ArchiMate_Representation": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.representation;",
   "ArchiMate_Specialization": "endArrow=block;html=1;endFill=0;edgeStyle=elbowEdgeStyle;elbow=vertical;",
-  "ArchiMate_BusinessRole": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=role;archiType=square;"
+  "ArchiMate_BusinessRole": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=role;archiType=square;",
+  "ArchiMate_Capability": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#F5DEAA;shape=mxgraph.archimate3.application;appType=capability;archiType=rounded;",
+  "ArchiMate_Resource": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#F5DEAA;shape=mxgraph.archimate3.application;appType=resource;archiType=square;",
+  "ArchiMate_Course_Of_Action": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#F5DEAA;shape=mxgraph.archimate3.application;appType=course;archiType=rounded;",
+  "ArchiMate_Grouping": "shape=folder;spacingTop=10;tabWidth=100;tabHeight=25;tabPosition=left;html=1;dashed=1;",
+  "ArchiMate_BusinessFunction": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=func;archiType=rounded;"
 }
