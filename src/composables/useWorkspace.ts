@@ -252,7 +252,6 @@ const buildFactSheetIndex = async (selectedDiagram: Diagram) => {
   const { status } = response
   if (status === 200) {
     const responseJson = await response.json()
-    console.log('RESPONSE JSIN', responseJson)
     let edges = []
     const { data = null, errors = null } = responseJson
     if (errors?.length > 0) {
@@ -307,7 +306,7 @@ const useWorkspace = () => {
       return filteredDiagrams
     }),
     selectedBookmark: computed(() => unref(selectedBookmark)),
-    toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark; console.log(bookmark) },
+    toggleBookmarkSelection: (bookmark: any) => { selectedBookmark.value = isSelected(bookmark) ? null : bookmark },
     isSelected,
     getDate,
     jwtClaims,
