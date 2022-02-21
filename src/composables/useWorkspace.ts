@@ -7,6 +7,7 @@ import debounce from 'lodash.debounce'
 import { create, convert } from 'xmlbuilder2'
 import useSwal from './useSwal'
 import { Diagram } from '../types'
+import 'isomorphic-fetch'
 
 const { toast } = useSwal()
 
@@ -42,12 +43,13 @@ const getAccessToken = async (host: string, apitoken: string) => {
     },
     body: Object.entries({ grant_type: 'client_credentials' }).map(([key, value]) => `${key}=${value}`).join('&')
   }
+
   const response = await fetch(`https://${host}/services/mtm/v1/oauth2/token`, options)
   const { status } = response
   const body = await response.json()
   if (status === 200) {
     const { access_token: accessToken } = body
-    return accessToken
+    return accessToken as string
   } else {
     throw Error(`${JSON.stringify(body)}`)
   }
@@ -82,7 +84,7 @@ const fetchVisualizerBookmarks = async () => {
   }
 }
 
-const authenticate = async (host: string, apitoken: string) => {
+export const authenticate = async (host: string, apitoken: string) => {
   if (unref(isAuthenticating)) return
   try {
     isAuthenticating.value = true
@@ -195,7 +197,7 @@ const saveBookmark = async (diagram: Diagram, xml: string, silent?: boolean) => 
   }
 }
 
-const fetchWorkspaceDataModel = async () => {
+export const fetchWorkspaceDataModel = async () => {
   const bearer = unref(accessToken)
   if (bearer === null || unref(jwtClaims) === null) throw Error('not authenticated')
   const { instanceUrl }: { instanceUrl: string } = unref(jwtClaims)
@@ -209,13 +211,30 @@ const fetchWorkspaceDataModel = async () => {
   }
 }
 
-const checkExternalIdPath = async (): Promise<string> => {
+export const checkExternalIdPath = async (): Promise<string> => {
   const dataModel = await fetchWorkspaceDataModel()
   const factSheetTypes = Object.keys(dataModel.factSheets)
   const sparxIdFactSheetTypes = new Set(dataModel.externalIdFields?.sparxId?.forFactSheets ?? [])
   const hasMissingFactSheetTypes = [...factSheetTypes].filter(x => !sparxIdFactSheetTypes.has(x)).length > 0
   externalIdPath.value = hasMissingFactSheetTypes ? EXTERNAL_ID_DEFAULT_PATH : 'sparxId'
   return unref(externalIdPath) ?? EXTERNAL_ID_DEFAULT_PATH
+}
+
+export const executeGraphQL = async (query: string, variables?: any): Promise<unknown> => {
+  const bearer = unref(accessToken)
+  if (bearer === null || unref(jwtClaims) === null) throw Error('not authenticated')
+  const { instanceUrl }: { instanceUrl: string } = unref(jwtClaims)
+  const headers = { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' }
+  const body = JSON.stringify({ query, variables })
+  const options = { method: 'POST', headers, body }
+  const response = await fetch(`${instanceUrl}/services/pathfinder/v1/graphql`, options)
+  const { status } = response
+  if (status === 200) {
+    const responseJson = await response.json()
+    const { data = null, errors = null } = responseJson
+    if (errors?.length > 0) throw Error(JSON.stringify(errors))
+    return data
+  } else throw Error(`${JSON.stringify(body)}`)
 }
 
 const buildFactSheetIndex = async (selectedDiagram: Diagram) => {
