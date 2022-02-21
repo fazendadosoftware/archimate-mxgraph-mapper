@@ -23,10 +23,13 @@ const EXPORTER_VERSION = '6.5'
 const MODEL = { name: 'EA_Model', type: 'uml:Model', visibility: 'public' }
 const EXTENDER = { extender: 'Enterprise Architect', extenderID: '6.5' }
 
+const mapId = (id: string) => id.replaceAll('_', '-')
+
 export const mapOwnedComment = (input: any) => {
   const { $ = null } = input
   if ($ === null) throw Error(`invalid ownedComment: ${JSON.stringify(input)}`)
-  const { 'xmi:id': id, 'xmi:type': type, body = '' } = $ ?? {}
+  let { 'xmi:id': id, 'xmi:type': type, body = '' } = $ ?? {}
+  id = mapId(id)
   if (Object.keys($).length > 3) throw Error(`more keys in ownedComment ${JSON.stringify(Object.keys($))}`)
   if (id === null || type !== 'uml:Comment') throw Error(`invalid ownedComment ${JSON.stringify(input)}`)
   const ownedComment: OwnedComment = { id, body }
@@ -44,8 +47,9 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
     packagedElement: packagedElements = []
   } = _packagedElement ?? {}
   if (id === null || type === null) throw Error(`invalid packagedElement: ${JSON.stringify(_packagedElement)}`)
+  id = mapId(id)
   const childLevel = typeof hierarchyLevel === 'number' ? hierarchyLevel + 1 : 0
-  const children = packagedElements.map(({ $: { 'xmi:id': id = null } }) => id) as string[]
+  const children = packagedElements.map(({ $: { 'xmi:id': id = null } }) => id !== null ? mapId(id) : id) as string[]
   packagedElements = packagedElements.map((packagedElement: any) => ({ ...packagedElement, hierarchyLevel: childLevel, parent: id, children: children }))
 
   accumulator = packagedElements.reduce(packagedElementReducer, accumulator)
@@ -59,6 +63,7 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
     children,
     ownedComments: (ownedComments as any[]).map(mapOwnedComment)
   }
+
   accumulator[packagedElement.id] = packagedElement
   return accumulator
 }
@@ -78,12 +83,13 @@ const mapModel = (xmi: any) => {
           .reduce(({ type, ids }: { type: string, ids: Set<string> }, { type: t, id }: { type: string, id: string }) => {
             if (type === '') type = t
             else if (type !== t) throw Error('multiple types in component')
-            ids.add(id)
+            ids.add(mapId(id))
             return { type, ids }
           }, { type: '', ids: new Set<string>() })
         if (archiMate3Index[archimate3Category] === undefined) archiMate3Index[archimate3Category] = []
         if (!archiMate3Index[archimate3Category].includes(archiMate3Type)) archiMate3Index[archimate3Category].push(archiMate3Type)
         for (const elementID of [...ids] as string[]) {
+          console.log('ELEMENT INDEX', elementID)
           if (elementIndex[elementID] !== undefined) throw Error(`collision with elementID ${elementID}`)
           elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archiMate3Type }
         }
@@ -205,15 +211,17 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
   const extension = mapExtension(xmi, model)
   const extensionElementIndex = extension.elements
     .reduce((accumulator: Record<string, ExtensionElement>, element) => {
+      element = { ...element, id: mapId(element.id) }
       accumulator[element.id] = element
       return accumulator
     }, {})
-
   // we need to create a link index from elements
   const diagrams = extension.diagrams
     .map(extensionDiagram => {
+      extensionDiagram = { ...extensionDiagram, id: mapId(extensionDiagram.id) }
       const elementIndex = extensionDiagram.elements
         .reduce((accumulator: Record<string, Element>, diagramElement) => {
+          diagramElement = { ...diagramElement, id: mapId(diagramElement.id) }
           const { [diagramElement.id]: { type = null, category = null } = { type: null, category: null } } = model.elementIndex
           const {
             [diagramElement.id]: { hierarchyLevel, parent, children } = { hierarchyLevel: 0, parent: null, children: null }
@@ -228,7 +236,14 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
 
       const connectorIndex = Object.values(elementIndex)
         .reduce((accumulator: Record<string, Connector>, element) => {
+          element = { ...element, id: mapId(element.id) }
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
+            connector = {
+              ...connector,
+              id: mapId(connector.id),
+              start: mapId(connector.start),
+              end: mapId(connector.end)
+            }
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
             return { ...accumulator, [connector.id]: { ...connector, isExternal } }
