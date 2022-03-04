@@ -58,10 +58,16 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
               if (style !== null && geometry !== null) vertexIndex[id] = _graph.insertVertex(parentNode, id, name, ...geometry, style)
             })
 
+          const reversedRelations = [
+            'ArchiMate_Composition',
+            'ArchiMate_Aggregation'
+          ]
+
           diagram.connectors
             .forEach((connector: Connector) => {
+              const isReversedRelation = connector?.type !== null ? reversedRelations.includes(connector.type) : false
               // NOTE: connector is reversed if for the "ArchiMate_Composition"
-              const isReversed = connector?.direction === ConnectorDirection.REVERSE || connector.type === 'ArchiMate_Composition'
+              const isReversed = connector?.direction === ConnectorDirection.REVERSE || isReversedRelation
               const sourceVertex = vertexIndex[isReversed ? connector.end : connector.start]
               const targetVertex = vertexIndex[isReversed ? connector.start : connector.end]
               const style = getStyle(connector.type)
