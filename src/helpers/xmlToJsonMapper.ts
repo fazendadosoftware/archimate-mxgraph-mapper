@@ -18,6 +18,13 @@ import {
   Diagram
 } from '../types'
 
+export enum ConnectorDirection {
+  DIRECT = 'Source -> Destination',
+  REVERSE = 'Destination -> Source',
+  BIDIRECTIONAL = 'Bi-Directional',
+  UNSPECIFIED = 'Unspecified'
+}
+
 const EXPORTER = 'Enterprise Architect'
 const EXPORTER_VERSION = '6.5'
 const MODEL = { name: 'EA_Model', type: 'uml:Model', visibility: 'public' }
@@ -89,7 +96,6 @@ const mapModel = (xmi: any) => {
         if (archiMate3Index[archimate3Category] === undefined) archiMate3Index[archimate3Category] = []
         if (!archiMate3Index[archimate3Category].includes(archiMate3Type)) archiMate3Index[archimate3Category].push(archiMate3Type)
         for (const elementID of [...ids] as string[]) {
-          console.log('ELEMENT INDEX', elementID)
           if (elementIndex[elementID] !== undefined) throw Error(`collision with elementID ${elementID}`)
           elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archiMate3Type }
         }
@@ -114,17 +120,20 @@ const mapExtensionElement = (_element: any, model: Model) => {
       .reduce((accumulator: Connector[], [_category, links]) => {
         links
           .forEach(({ $: { 'xmi:id': id, end, start } }) => {
+            id = mapId(id)
+            start = mapId(start)
+            end = mapId(end)
             const { [id]: { type = null, category = null } = {} } = model.elementIndex
-            accumulator.push({ id, category, type, end, start, isExternal: null })
+            accumulator.push({ id, category, type, end, start, isExternal: null, direction: ConnectorDirection.UNSPECIFIED })
           })
         return accumulator
       }, [])
   }
-  const element: ExtensionElement = { id, type, name, connectors: links }
+  const element: ExtensionElement = { id: mapId(id), type, name, connectors: links }
   return element
 }
+const allowedDirections = Object.values(ConnectorDirection)
 
-const allowedDirections = ['Source -> Destination', 'Destination -> Source', 'Bi-Directional', 'Unspecified']
 const mapExtensionConnector = (_connector: any, model: Model) => {
   // skipped properties: code, extendedProperties, flags, model, packageproperties, paths, project
   // properties, style, , tags, times
@@ -136,7 +145,7 @@ const mapExtensionConnector = (_connector: any, model: Model) => {
     target: [{ $: { 'xmi:idref': targetID = null } }]
   } = _connector ?? {}
   if (typeof label === 'string') label = label.replace(/[^a-zA-Z_]/g, '')
-  const connector: ExtensionConnector = { id, label, direction, category, type, sourceID, targetID }
+  const connector: ExtensionConnector = { id: mapId(id), label, direction, category, type, sourceID: mapId(sourceID), targetID: mapId(targetID) }
   if (!allowedDirections.includes(direction)) throw Error(`invalid connector direction: ${JSON.stringify(connector)}`)
   if (sourceID === null || targetID === null) throw Error(`invalid connector, source or target IDS are null: ${JSON.stringify(connector)}`)
   return connector
@@ -215,6 +224,11 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
       accumulator[element.id] = element
       return accumulator
     }, {})
+  const connectorDirectionIndex = extension.connectors
+    .reduce((accumulator: Record<string, string>, connector) => {
+      accumulator[connector.id] = connector.direction
+      return accumulator
+    }, {})
   // we need to create a link index from elements
   const diagrams = extension.diagrams
     .map(extensionDiagram => {
@@ -238,15 +252,10 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
         .reduce((accumulator: Record<string, Connector>, element) => {
           element = { ...element, id: mapId(element.id) }
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
-            connector = {
-              ...connector,
-              id: mapId(connector.id),
-              start: mapId(connector.start),
-              end: mapId(connector.end)
-            }
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
-            return { ...accumulator, [connector.id]: { ...connector, isExternal } }
+            const direction = connectorDirectionIndex[connector.id]
+            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal } }
           }, accumulator)
           return accumulator
         }, {})

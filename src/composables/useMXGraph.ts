@@ -2,6 +2,7 @@ import mxgraph from '../helpers/mxgraph-shims'
 import '../helpers/mxArchimate3Shapes'
 import useSwal from './useSwal'
 import { Diagram, Element, Connector } from '../types'
+import { ConnectorDirection } from '../helpers/xmlToJsonMapper'
 import styles from '../assets/data/styles.json'
 import { ref, unref, Ref, computed } from 'vue'
 
@@ -59,8 +60,10 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
 
           diagram.connectors
             .forEach((connector: Connector) => {
-              const sourceVertex = vertexIndex[connector.start]
-              const targetVertex = vertexIndex[connector.end]
+              // NOTE: connector is reversed if for the "ArchiMate_Composition"
+              const isReversed = connector?.direction === ConnectorDirection.REVERSE || connector.type === 'ArchiMate_Composition'
+              const sourceVertex = vertexIndex[isReversed ? connector.end : connector.start]
+              const targetVertex = vertexIndex[isReversed ? connector.start : connector.end]
               const style = getStyle(connector.type)
               if (style !== null) _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
             })
@@ -68,6 +71,7 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
       } finally {
         _graph.getModel().endUpdate()
         graph.value = _graph
+        // console.log(getXml(_graph))
       }
       unref(outline)?.outline?.destroy()
       if (diagram !== null) {

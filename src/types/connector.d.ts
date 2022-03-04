@@ -6,4 +6,5 @@ export interface Connector {
   end: string
   // link connects elements belonging to different diagrams
   isExternal: boolean | null
+  direction: string
 }

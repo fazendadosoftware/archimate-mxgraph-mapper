@@ -40,7 +40,7 @@
 </template>
 
 <script lang="ts" setup>
-import { toRefs, ComputedRef, computed } from 'vue'
+import { toRefs, ComputedRef, computed, unref } from 'vue'
 import { Connector, Diagram } from '../types'
 import ExternalConnectorMarker from './ExternalConnectorMarker.vue'
 
@@ -52,6 +52,8 @@ const columns: ComputedRef<{ key: keyof Connector, label: string, classes?: stri
   { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
   { key: 'start', label: 'SourceID' },
   { key: 'end', label: 'Target ID' },
+  { key: 'direction', label: 'Direction' },
   { key: 'isExternal', label: 'Is External?', component: (connector: Connector) => connector.isExternal ? ExternalConnectorMarker : null }
 ])
+
 </script>
