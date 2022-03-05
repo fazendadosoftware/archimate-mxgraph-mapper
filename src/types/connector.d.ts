@@ -1,3 +1,4 @@
+import { CoordinatePoint } from './extensionDiagram'
 export interface Connector {
   id: string
   category: string | null
@@ -7,4 +8,6 @@ export interface Connector {
   // link connects elements belonging to different diagrams
   isExternal: boolean | null
   direction: string
+  sourcePoint: CoordinatePoint | null
+  targetPoint: CoordinatePoint | null
 }

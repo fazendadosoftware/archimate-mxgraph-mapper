@@ -124,7 +124,17 @@ const mapExtensionElement = (_element: any, model: Model) => {
             start = mapId(start)
             end = mapId(end)
             const { [id]: { type = null, category = null } = {} } = model.elementIndex
-            accumulator.push({ id, category, type, end, start, isExternal: null, direction: ConnectorDirection.UNSPECIFIED })
+            accumulator.push({
+              id,
+              category,
+              type,
+              end,
+              start,
+              isExternal: null,
+              direction: ConnectorDirection.UNSPECIFIED,
+              sourcePoint: null,
+              targetPoint: null
+            })
           })
         return accumulator
       }, [])
@@ -154,19 +164,30 @@ const mapExtensionConnector = (_connector: any, model: Model) => {
 const mapDiagramElement = (_diagramElement: any) => {
   let { $: { geometry = null, seqno, subject = null } } = _diagramElement ?? {}
   if (typeof subject !== 'string') throw Error(`invalid diagram element subject: ${JSON.stringify(_diagramElement)}`)
-  const { Left: x0 = null, Right: x1 = null, Bottom: y1 = null, Top: y0 = null } = geometry.replace(/;/g, ' ').trim().split(' ')
+  if (typeof geometry !== 'string') throw Error(`invalid diagram element geometry: ${JSON.stringify(_diagramElement)}`)
+  const {
+    Left: x0 = null,
+    Right: x1 = null,
+    Bottom: y1 = null,
+    Top: y0 = null,
+    SX = null,
+    SY = null,
+    EX = null,
+    EY = null
+  } = geometry.replace(/;/g, ' ').trim().split(' ')
     .reduce((accumulator: any, vertex: string) => {
       const [coordinate, value] = vertex.split('=')
       accumulator[coordinate] = parseInt(value)
       return accumulator
     }, {})
+  const sourcePoint = SX !== null && SY !== null ? { x: SX, y: SY } : null
+  const targetPoint = EX !== null && EY !== null ? { x: EX, y: EY } : null
   const rect = x0 == null ? null : { x0, y0, width: x1 - x0, height: y1 - y0 }
-  if (typeof geometry !== 'string') throw Error(`invalid diagram element geometry: ${JSON.stringify(_diagramElement)}`)
   if (typeof seqno === 'string') {
     seqno = parseInt(seqno)
     if (isNaN(seqno)) throw Error(`invalid diagram element seqno: ${JSON.stringify(_diagramElement)}`)
   }
-  const element: ExtensionDiagramElement = { id: subject, seqno, geometry, rect }
+  const element: ExtensionDiagramElement = { id: subject, seqno, geometry, rect, sourcePoint, targetPoint }
   return element
 }
 
@@ -252,10 +273,22 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
         .reduce((accumulator: Record<string, Connector>, element) => {
           element = { ...element, id: mapId(element.id) }
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
+            let sourcePoint = null
+            let targetPoint = null
+            const indexedElement = elementIndex[connector.id] ?? null
+            if (indexedElement !== null) ({ sourcePoint = null, targetPoint = null } = indexedElement)
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
+            if (sourcePoint !== null && targetPoint !== null && !isExternal) {
+              const { rect: startRect = null } = elementIndex[start]
+              const { rect: endRect = null } = elementIndex[end]
+              sourcePoint.x += startRect?.x0 ?? 0
+              sourcePoint.y += startRect?.y0 ?? 0
+              targetPoint.x += endRect?.x0 ?? 0
+              targetPoint.y += endRect?.y0 ?? 0
+            }
             const direction = connectorDirectionIndex[connector.id]
-            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal } }
+            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint } }
           }, accumulator)
           return accumulator
         }, {})

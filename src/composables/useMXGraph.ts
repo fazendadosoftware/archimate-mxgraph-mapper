@@ -3,6 +3,7 @@ import '../helpers/mxArchimate3Shapes'
 import useSwal from './useSwal'
 import { Diagram, Element, Connector } from '../types'
 import { ConnectorDirection } from '../helpers/xmlToJsonMapper'
+import { ConnectorBuilder } from '../helpers/ConnectorBuilder'
 import styles from '../assets/data/styles.json'
 import { ref, unref, Ref, computed } from 'vue'
 
@@ -10,7 +11,7 @@ const { toast } = useSwal()
 
 const styleIndex: Record<string, string> = styles
 
-const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent } = mxgraph
+const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent, mxPoint: MXPoint } = mxgraph
 
 interface DrawGraphProps {
   graphContainer: Ref<Element | null>
@@ -22,6 +23,12 @@ interface DrawGraphProps {
 }
 
 const getStyle = (type: string | null) => type === null ? null : styleIndex[type] ?? null
+
+const connectorTypes = new Set<string>()
+const getConnectorStyle = (connector: Connector) => {
+  if (connector.type !== null) connectorTypes.add(connector.type)
+  return 'html=1;endArrow=none;endFill=0;endSize=10;rounded=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;edgeStyle=elbowEdgeStyle;elbow=vertical;'
+}
 
 const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
   const { graphContainer, outlineContainer, undoManager, graph, outline, undoListener } = props
@@ -58,20 +65,24 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
               if (style !== null && geometry !== null) vertexIndex[id] = _graph.insertVertex(parentNode, id, name, ...geometry, style)
             })
 
-          const reversedRelations = [
-            'ArchiMate_Composition',
-            'ArchiMate_Aggregation'
-          ]
-
+          const connectorBuilder = new ConnectorBuilder(diagram)
           diagram.connectors
             .forEach((connector: Connector) => {
-              const isReversedRelation = connector?.type !== null ? reversedRelations.includes(connector.type) : false
+              const { sourcePoint = null, targetPoint = null } = connector
               // NOTE: connector is reversed if for the "ArchiMate_Composition"
-              const isReversed = connector?.direction === ConnectorDirection.REVERSE || isReversedRelation
+              const isReversed = connector?.direction === ConnectorDirection.REVERSE
               const sourceVertex = vertexIndex[isReversed ? connector.end : connector.start]
               const targetVertex = vertexIndex[isReversed ? connector.start : connector.end]
-              const style = getStyle(connector.type)
-              if (style !== null) _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
+              // TODO: we need to construct dynamic styles for connectors
+              // const style = getStyle(connector.type)
+              const style = connectorBuilder.getConnectorStyle(connector)
+              console.log(style)
+              if (style !== null) {
+                const edge = _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
+                // https://jgraph.github.io/mxgraph/docs/js-api/files/model/mxGeometry-js.html#mxGeometry.setTerminalPoint
+                // if (sourcePoint !== null) edge.geometry.setTerminalPoint(new MXPoint(sourcePoint.x, sourcePoint.y), true)
+                // if (targetPoint !== null) edge.geometry.setTerminalPoint(new MXPoint(targetPoint.x, targetPoint.y), false)
+              }
             })
         }
       } finally {
@@ -85,6 +96,7 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
         _graph.getModel().addListener(mxEvent.UNDO, undoListener)
         _graph.getView().addListener(mxEvent.UNDO, undoListener)
       }
+      // console.log(getXml(_graph))
     } catch (error) {
       console.error(error)
       void toast.fire({
