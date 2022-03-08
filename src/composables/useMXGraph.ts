@@ -10,8 +10,7 @@ import { ref, unref, Ref, computed } from 'vue'
 const { toast } = useSwal()
 
 const styleIndex: Record<string, string> = styles
-
-const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent, mxPoint: MXPoint } = mxgraph
+const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent, mxPoint: MXPoint, mxStylesheet, mxConstants, mxPerimeter, mxEdgeStyle } = mxgraph
 
 interface DrawGraphProps {
   graphContainer: Ref<Element | null>
@@ -23,12 +22,6 @@ interface DrawGraphProps {
 }
 
 const getStyle = (type: string | null) => type === null ? null : styleIndex[type] ?? null
-
-const connectorTypes = new Set<string>()
-const getConnectorStyle = (connector: Connector) => {
-  if (connector.type !== null) connectorTypes.add(connector.type)
-  return 'html=1;endArrow=none;endFill=0;endSize=10;rounded=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;edgeStyle=elbowEdgeStyle;elbow=vertical;'
-}
 
 const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
   const { graphContainer, outlineContainer, undoManager, graph, outline, undoListener } = props
@@ -76,7 +69,6 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
               // TODO: we need to construct dynamic styles for connectors
               // const style = getStyle(connector.type)
               const style = connectorBuilder.getConnectorStyle(connector)
-              console.log(style)
               if (style !== null) {
                 const edge = _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
                 // https://jgraph.github.io/mxgraph/docs/js-api/files/model/mxGeometry-js.html#mxGeometry.setTerminalPoint
@@ -108,6 +100,66 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
   }
 }
 
+/*
+const drawtTestGraph = (props: DrawGraphProps) => {
+  const vertexStyle: any = {}
+  vertexStyle[mxConstants.STYLE_SHAPE] = mxConstants.SHAPE_RECTANGLE
+  vertexStyle[mxConstants.STYLE_PERIMETER] = mxPerimeter.RectanglePerimeter
+  vertexStyle[mxConstants.STYLE_STROKECOLOR] = 'gray'
+  vertexStyle[mxConstants.STYLE_ROUNDED] = true
+  vertexStyle[mxConstants.STYLE_FILLCOLOR] = '#EEEEEE'
+  vertexStyle[mxConstants.STYLE_GRADIENTCOLOR] = 'white'
+  vertexStyle[mxConstants.STYLE_FONTCOLOR] = '#774400'
+  vertexStyle[mxConstants.STYLE_ALIGN] = mxConstants.ALIGN_CENTER
+  vertexStyle[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_MIDDLE
+  vertexStyle[mxConstants.STYLE_FONTSIZE] = '12'
+  vertexStyle[mxConstants.STYLE_FONTSTYLE] = 1
+
+  const edgeStyle: any = {}
+  edgeStyle[mxConstants.STYLE_SHAPE] = mxConstants.SHAPE_CONNECTOR
+  edgeStyle[mxConstants.STYLE_STROKECOLOR] = '#6482B9'
+  edgeStyle[mxConstants.STYLE_ALIGN] = mxConstants.ALIGN_CENTER
+  edgeStyle[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_MIDDLE
+  edgeStyle[mxConstants.STYLE_EDGE] = mxEdgeStyle.ElbowConnector
+  edgeStyle[mxConstants.STYLE_ENDARROW] = mxConstants.ARROW_CLASSIC
+  edgeStyle[mxConstants.STYLE_FONTSIZE] = '10'
+
+  const { graphContainer, outlineContainer, undoManager, graph, outline, undoListener } = props
+  const graphContainerEl = unref(graphContainer)
+  const outlineContainerEl = unref(outlineContainer)
+  if (graphContainerEl === null || outlineContainerEl === null) return
+  if (unref(graph) !== null) { unref(graph).destroy(); unref(undoManager).clear() }
+  const _graph = new MXGraph(graphContainerEl)
+  _graph.getStylesheet().putDefaultVertexStyle(vertexStyle)
+  _graph.getStylesheet().putDefaultEdgeStyle(edgeStyle)
+  _graph.getModel().beginUpdate()
+  const defaultParent = _graph.getDefaultParent()
+  const connector: Connector = {
+    id: '60m2Q7WvLiZZtOymNE9S-9',
+    category: 'something',
+    type: 'ArchiMate_Composition',
+    start: '60m2Q7WvLiZZtOymNE9S-5',
+    end: '60m2Q7WvLiZZtOymNE9S-6',
+    isExternal: false,
+    direction: 'undefined',
+    sourcePoint: null,
+    targetPoint: null
+  }
+  const connectorStyle = ConnectorBuilder.getConnectorStyle(connector)
+  // geometryNode: x0, y0, width, height
+  const vertexA = _graph.insertVertex(defaultParent, '60m2Q7WvLiZZtOymNE9S-5', 'A', ...[40, 40, 120, 60], 'rounded=0;whiteSpace=wrap;html=1;')
+  const vertexB = _graph.insertVertex(defaultParent, '60m2Q7WvLiZZtOymNE9S-6', 'B', ...[280, 40, 120, 60], 'rounded=0;whiteSpace=wrap;html=1;')
+  const _connector = _graph.insertEdge(defaultParent, '60m2Q7WvLiZZtOymNE9S-9', '', vertexA, vertexB, connectorStyle)
+  _graph.getModel().endUpdate()
+  unref(outline)?.outline?.destroy()
+  outline.value = new MXOutline(_graph, outlineContainerEl)
+  _graph.getModel().addListener(mxEvent.UNDO, undoListener)
+  _graph.getView().addListener(mxEvent.UNDO, undoListener)
+  const xml = mxUtils.getXml(new MXCodec().encode(_graph.getModel()))
+  console.log(xml)
+}
+*/
+
 const getXml = (graph: any): string => {
   if (unref(graph) === null) throw Error('invalid graph')
   const xml = mxUtils.getXml(new MXCodec().encode(unref(graph).getModel()))
@@ -130,6 +182,7 @@ const useMXGraph = (props: UseMXGraphProps) => {
   const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
   return {
     drawGraph: (data: Diagram) => drawGraph(drawGraphProps, data),
+    // drawTestGraph: () => drawtTestGraph(drawGraphProps),
     getXml: () => getXml(graph),
     styleIndex: computed(() => styleIndex),
     undoManager,

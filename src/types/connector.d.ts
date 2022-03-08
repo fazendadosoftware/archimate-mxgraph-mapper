@@ -8,6 +8,7 @@ export interface Connector {
   // link connects elements belonging to different diagrams
   isExternal: boolean | null
   direction: string
+  edge: 1 | 2 | 3 | 4 | null
   sourcePoint: CoordinatePoint | null
   targetPoint: CoordinatePoint | null
 }

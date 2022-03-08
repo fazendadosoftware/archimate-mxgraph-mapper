@@ -23,6 +23,7 @@ export interface ExtensionDiagramElement {
   seqno?: number
   geometry: string
   rect: null | RectGeometry
+  edge: 1 | 2 | 3 | 4 | null
   sourcePoint: null | CoordinatePoint
   targetPoint: null | CoordinatePoint
 }

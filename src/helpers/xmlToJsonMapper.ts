@@ -133,7 +133,8 @@ const mapExtensionElement = (_element: any, model: Model) => {
               isExternal: null,
               direction: ConnectorDirection.UNSPECIFIED,
               sourcePoint: null,
-              targetPoint: null
+              targetPoint: null,
+              edge: null
             })
           })
         return accumulator
@@ -173,7 +174,8 @@ const mapDiagramElement = (_diagramElement: any) => {
     SX = null,
     SY = null,
     EX = null,
-    EY = null
+    EY = null,
+    EDGE = null
   } = geometry.replace(/;/g, ' ').trim().split(' ')
     .reduce((accumulator: any, vertex: string) => {
       const [coordinate, value] = vertex.split('=')
@@ -187,7 +189,7 @@ const mapDiagramElement = (_diagramElement: any) => {
     seqno = parseInt(seqno)
     if (isNaN(seqno)) throw Error(`invalid diagram element seqno: ${JSON.stringify(_diagramElement)}`)
   }
-  const element: ExtensionDiagramElement = { id: subject, seqno, geometry, rect, sourcePoint, targetPoint }
+  const element: ExtensionDiagramElement = { id: subject, seqno, geometry, rect, sourcePoint, targetPoint, edge: EDGE }
   return element
 }
 
@@ -275,10 +277,12 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
             let sourcePoint = null
             let targetPoint = null
+            let edge = null
             const indexedElement = elementIndex[connector.id] ?? null
-            if (indexedElement !== null) ({ sourcePoint = null, targetPoint = null } = indexedElement)
+            if (indexedElement !== null) ({ sourcePoint = null, targetPoint = null, edge = null } = indexedElement)
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
+            /*
             if (sourcePoint !== null && targetPoint !== null && !isExternal) {
               const { rect: startRect = null } = elementIndex[start]
               const { rect: endRect = null } = elementIndex[end]
@@ -287,8 +291,9 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
               targetPoint.x += endRect?.x0 ?? 0
               targetPoint.y += endRect?.y0 ?? 0
             }
+            */
             const direction = connectorDirectionIndex[connector.id]
-            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint } }
+            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint, edge } }
           }, accumulator)
           return accumulator
         }, {})

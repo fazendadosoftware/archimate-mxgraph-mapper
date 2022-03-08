@@ -115,7 +115,7 @@ const outline = ref(null)
 const elements = ref<Element[]>([])
 const suppressedElements = ref<Element[]>([])
 
-const { drawGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
+const { drawGraph, drawTestGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
 const { document, selectedDiagram, toggleDiagramSelection } = useDiagrams()
 const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, isSavingBookmark, saveBookmark, buildFactSheetIndex, fetchVisualizerBookmarks } = useWorkspace()
 
@@ -143,6 +143,7 @@ watch([selectedDiagram, selectedBookmark], ([selectedDiagram, selectedBookmark])
   if (selectedBookmark?.state?.graphXml) view.value = 'diagram'
   const chartData = selectedDiagram ?? selectedBookmark?.state?.graphXml
   if (chartData !== undefined) drawGraph(chartData)
+  // if (chartData !== undefined) drawTestGraph()
 })
 
 const viewTabs = [
