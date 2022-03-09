@@ -11,4 +11,5 @@ export interface Connector {
   edge: 1 | 2 | 3 | 4 | null
   sourcePoint: CoordinatePoint | null
   targetPoint: CoordinatePoint | null
+  path: CoordinatePoint[]
 }

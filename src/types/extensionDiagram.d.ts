@@ -26,6 +26,7 @@ export interface ExtensionDiagramElement {
   edge: 1 | 2 | 3 | 4 | null
   sourcePoint: null | CoordinatePoint
   targetPoint: null | CoordinatePoint
+  path: CoordinatePoint[]
 }
 
 export interface ExtensionDiagramProject {

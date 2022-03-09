@@ -4,13 +4,13 @@ import { PackagedElement } from './packagedElement'
 import { OwnedComment } from './ownedComment'
 import { OwnedAttribute } from './ownedAttribute'
 import { ModelElement } from './modelElement'
-import { ExtensionElement } from './extensionElement'
+import { ExtensionElement, CoordinatePoint } from './extensionElement'
 import { ExtensionConnector } from './extensionConnector'
 import { ExportedDocument } from './exportedDocument'
 import { Extension } from './extension.d'
 import { ExtensionDiagram, ExtensionDiagramProject, ExtensionDiagramElement, RectGeometry } from './extensionDiagram'
 import { Element } from './element.d'
-import { Connector, ConnectorDirection } from './connector'
+import { Connector } from './connector'
 import { Diagram } from './diagram.d'
 
 export {
@@ -31,6 +31,6 @@ export {
   RectGeometry,
   Element,
   Connector,
-  ConnectorDirection,
+  CoordinatePoint,
   Diagram
 }
