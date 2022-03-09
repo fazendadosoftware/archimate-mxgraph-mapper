@@ -162,21 +162,12 @@ export class ConnectorBuilder {
           ? 0
           : connector.edge === 2
             ? 1
-            : exitX
+            : 1 - exitX
         connectorStyleParams.exitY = connector.edge === 1
           ? 0
           : connector.edge === 3
             ? 1
             : exitY
-        // connectorStyleParams.exitX = exitX
-        // connectorStyleParams.exitY = exitY
-        /*
-        if (connector.id === 'EAID-9B9548F4-333B-4bce-8DC8-F124E12D5896') {
-          console.log('SOURCE POINT', connector.sourcePoint, source?.rect, entryX, entryY)
-          connectorStyleParams[mxConstants.STYLE_STROKECOLOR] = '#f8cecc'
-          connectorStyleParams[mxConstants.STYLE_STROKEWIDTH] = '3'
-        }
-        */
       }
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
       if (target !== null && target.rect !== null) {
@@ -184,28 +175,20 @@ export class ConnectorBuilder {
         const { x: dX, y: dY } = connector.targetPoint
         const entryX = 0.5 - dX / width
         const entryY = 0.5 - dY / height
-        // connectorStyleParams.entryX = entryX
-        // connectorStyleParams.entryY = entryY
         connectorStyleParams.entryX = connector.edge === 4
           ? 1
           : connector.edge === 2
             ? 0
-            : entryX
-        console.log('ENTRY X IS', connectorStyleParams.entryX)
+            : 1 - entryX
         connectorStyleParams.entryY = connector.edge === 1
           ? 1
           : connector.edge === 3
             ? 0
             : entryY
-        console.log('ENTRY Y IS', connectorStyleParams.entryY)
       }
     }
-    if (connector.id === 'EAID-9C9E1D3D-FE91-4910-B150-586FA35B51E3') console.log('CONNECTOR STYLE PARAMS ENTRYX ENTRYY', connectorStyleParams.entryX, connectorStyleParams.entryY, connector.edge, connectorStyleParams)
 
     const connectorStyle = Object.entries({ html: 1, ...connectorStyleParams }).map(([key, value]) => `${key}=${value as string}`).join(';')
-    if (connector.id === 'EAID-9B9548F4-333B-4bce-8DC8-F124E12D5896') {
-      console.log('STYLE', connectorStyle)
-    }
     return connectorStyle
   }
 
