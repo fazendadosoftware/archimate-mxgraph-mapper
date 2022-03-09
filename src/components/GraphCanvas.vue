@@ -115,7 +115,7 @@ const outline = ref(null)
 const elements = ref<Element[]>([])
 const suppressedElements = ref<Element[]>([])
 
-const { drawGraph, drawTestGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
+const { drawGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
 const { document, selectedDiagram, toggleDiagramSelection } = useDiagrams()
 const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, isSavingBookmark, saveBookmark, buildFactSheetIndex, fetchVisualizerBookmarks } = useWorkspace()
 

@@ -135,7 +135,8 @@ const mapExtensionElement = (_element: any, model: Model) => {
               direction: ConnectorDirection.UNSPECIFIED,
               sourcePoint: null,
               targetPoint: null,
-              edge: null
+              edge: null,
+              path: []
             })
           })
         return accumulator
