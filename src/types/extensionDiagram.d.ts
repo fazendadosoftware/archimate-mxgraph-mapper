@@ -13,11 +13,20 @@ export interface RectGeometry {
   height: number
 }
 
+export interface CoordinatePoint {
+  x: number
+  y: number
+}
+
 export interface ExtensionDiagramElement {
   id: string
   seqno?: number
   geometry: string
   rect: null | RectGeometry
+  edge: 1 | 2 | 3 | 4 | null
+  sourcePoint: null | CoordinatePoint
+  targetPoint: null | CoordinatePoint
+  path: CoordinatePoint[]
 }
 
 export interface ExtensionDiagramProject {

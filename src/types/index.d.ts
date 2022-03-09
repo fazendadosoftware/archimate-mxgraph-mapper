@@ -8,7 +8,7 @@ import { ExtensionElement } from './extensionElement'
 import { ExtensionConnector } from './extensionConnector'
 import { ExportedDocument } from './exportedDocument'
 import { Extension } from './extension.d'
-import { ExtensionDiagram, ExtensionDiagramProject, ExtensionDiagramElement, RectGeometry } from './extensionDiagram'
+import { ExtensionDiagram, ExtensionDiagramProject, ExtensionDiagramElement, RectGeometry, CoordinatePoint } from './extensionDiagram'
 import { Element } from './element.d'
 import { Connector } from './connector'
 import { Diagram } from './diagram.d'
@@ -31,5 +31,6 @@ export {
   RectGeometry,
   Element,
   Connector,
+  CoordinatePoint,
   Diagram
 }

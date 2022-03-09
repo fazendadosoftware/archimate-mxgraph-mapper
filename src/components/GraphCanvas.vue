@@ -143,6 +143,7 @@ watch([selectedDiagram, selectedBookmark], ([selectedDiagram, selectedBookmark])
   if (selectedBookmark?.state?.graphXml) view.value = 'diagram'
   const chartData = selectedDiagram ?? selectedBookmark?.state?.graphXml
   if (chartData !== undefined) drawGraph(chartData)
+  // if (chartData !== undefined) drawTestGraph()
 })
 
 const viewTabs = [

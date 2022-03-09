@@ -2,14 +2,15 @@ import mxgraph from '../helpers/mxgraph-shims'
 import '../helpers/mxArchimate3Shapes'
 import useSwal from './useSwal'
 import { Diagram, Element, Connector } from '../types'
+import { ConnectorDirection } from '../helpers/xmlToJsonMapper'
+import { ConnectorBuilder } from '../helpers/ConnectorBuilder'
 import styles from '../assets/data/styles.json'
 import { ref, unref, Ref, computed } from 'vue'
 
 const { toast } = useSwal()
 
 const styleIndex: Record<string, string> = styles
-
-const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent } = mxgraph
+const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent, mxPoint: MXPoint } = mxgraph
 
 interface DrawGraphProps {
   graphContainer: Ref<Element | null>
@@ -57,17 +58,25 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
               if (style !== null && geometry !== null) vertexIndex[id] = _graph.insertVertex(parentNode, id, name, ...geometry, style)
             })
 
+          const connectorBuilder = new ConnectorBuilder(diagram)
           diagram.connectors
             .forEach((connector: Connector) => {
-              const sourceVertex = vertexIndex[connector.start]
-              const targetVertex = vertexIndex[connector.end]
-              const style = getStyle(connector.type)
-              if (style !== null) _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
+              const isReversed = connector?.direction === ConnectorDirection.REVERSE
+              const sourceVertex = vertexIndex[isReversed ? connector.end : connector.start]
+              const targetVertex = vertexIndex[isReversed ? connector.start : connector.end]
+              const style = connectorBuilder.getConnectorStyle(connector)
+              if (style !== null) {
+                const edge = _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
+                if (connector.path.length > 0) {
+                  edge.getGeometry().points = connector.path.map(({ x, y }) => new MXPoint(x, y))
+                }
+              }
             })
         }
       } finally {
         _graph.getModel().endUpdate()
         graph.value = _graph
+        // console.log(getXml(_graph))
       }
       unref(outline)?.outline?.destroy()
       if (diagram !== null) {
@@ -75,6 +84,7 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
         _graph.getModel().addListener(mxEvent.UNDO, undoListener)
         _graph.getView().addListener(mxEvent.UNDO, undoListener)
       }
+      // console.log(getXml(_graph))
     } catch (error) {
       console.error(error)
       void toast.fire({
@@ -108,6 +118,7 @@ const useMXGraph = (props: UseMXGraphProps) => {
   const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
   return {
     drawGraph: (data: Diagram) => drawGraph(drawGraphProps, data),
+    // drawTestGraph: () => drawtTestGraph(drawGraphProps),
     getXml: () => getXml(graph),
     styleIndex: computed(() => styleIndex),
     undoManager,
