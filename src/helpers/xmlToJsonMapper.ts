@@ -97,6 +97,7 @@ const mapModel = (xmi: any) => {
         if (archiMate3Index[archimate3Category] === undefined) archiMate3Index[archimate3Category] = []
         if (!archiMate3Index[archimate3Category].includes(archiMate3Type)) archiMate3Index[archimate3Category].push(archiMate3Type)
         for (const elementID of [...ids] as string[]) {
+          console.log('ELEMENT INDEX', elementID)
           if (elementIndex[elementID] !== undefined) throw Error(`collision with elementID ${elementID}`)
           elementIndex[elementID] = { id: elementID, category: archimate3Category, type: archiMate3Type }
         }
