@@ -1,5 +1,5 @@
 import { Workbook } from 'exceljs'
-import { authenticate, checkExternalIdPath, executeGraphQL, fetchWorkspaceDataModel } from './useWorkspace'
+import { authenticate, checkExternalIdPath, executeGraphQL, fetchWorkspaceDataModel, fetchVisualizerBookmarks } from './useWorkspace'
 
 beforeAll(async () => {
   const { default: credentials } = await import('../../lxr.json')

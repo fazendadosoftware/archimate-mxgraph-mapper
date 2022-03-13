@@ -117,7 +117,7 @@ const suppressedElements = ref<Element[]>([])
 
 const { drawGraph, undoManager, getXml, graphInstance } = useMXGraph({ graph, outline })
 const { document, selectedDiagram, toggleDiagramSelection } = useDiagrams()
-const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, isSavingBookmark, saveBookmark, buildFactSheetIndex, fetchVisualizerBookmarks } = useWorkspace()
+const { isAuthenticated, selectedBookmark, toggleBookmarkSelection, isSavingBookmark, upsertBookmark, buildFactSheetIndex, fetchVisualizerBookmarks } = useWorkspace()
 
 watch([isAuthenticated, selectedDiagram], ([isAuthenticated, selectedDiagram]) => {
   if (isAuthenticated && selectedDiagram !== null) buildFactSheetIndex(selectedDiagram)
@@ -171,7 +171,8 @@ const view = ref('diagram')
 const save = async () => {
   const diagram = unref(selectedDiagram)
   if (diagram === null) return
-  await saveBookmark(diagram, getXml())
+  // await saveBookmark(diagram, getXml())
+  await upsertBookmark(diagram, getXml())
   await fetchVisualizerBookmarks()
 }
 

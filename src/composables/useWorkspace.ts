@@ -56,7 +56,7 @@ const getAccessToken = async (host: string, apitoken: string) => {
   }
 }
 
-const fetchVisualizerBookmarks = async () => {
+export const fetchVisualizerBookmarks = async () => {
   if (unref(accessToken) === null) throw Error('not authenticated')
   const bearer = unref(accessToken) ?? ''
   const { instanceUrl } = jwtDecode<{ instanceUrl: string }>(bearer)
@@ -71,6 +71,7 @@ const fetchVisualizerBookmarks = async () => {
       const { data = [] } = body
       bookmarkIndex.value = data
         .reduce((accumulator: any, bookmark: any) => ({ ...accumulator, [bookmark.id]: bookmark }), {})
+      return data
     } else {
       console.error(body)
       void toast.fire({
@@ -162,25 +163,25 @@ const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
   return enrichedXml
 }
 
-const saveBookmark = async (diagram: Diagram, xml: string, silent?: boolean) => {
+const upsertBookmark = async (diagram: Diagram, xml: string, silent?: boolean) => {
   if (unref(accessToken) === null) throw Error('not authenticated')
   const bearer = unref(accessToken) ?? ''
   const { instanceUrl } = jwtDecode<{ instanceUrl: string }>(bearer)
-  const url = `${instanceUrl}/services/pathfinder/v1/bookmarks`
-
+  const bookmarkExistsInWorkspace = Object.values(unref(bookmarkIndex))
+    .find((bookmark: any) => bookmark?.state?.sparxId === diagram.id) ?? null
+  const url = bookmarkExistsInWorkspace === null
+    ? `${instanceUrl}/services/pathfinder/v1/bookmarks`
+    : `${instanceUrl}/services/pathfinder/v1/bookmarks/${bookmarkExistsInWorkspace?.id as string}`
   const graphXml = await enrichXml(diagram, xml)
   const { name } = diagram
-  const bookmark = { groupKey: 'freedraw', name, type: 'VISUALIZER', state: { graphXml } }
-
-  const options = {
-    method: 'POST',
-    body: JSON.stringify(bookmark),
-    headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' }
-  }
-
+  const method = bookmarkExistsInWorkspace === null ? 'POST' : 'PUT'
+  const body = JSON.stringify(bookmarkExistsInWorkspace === null
+    ? { groupKey: 'freedraw', name, type: 'VISUALIZER', state: { graphXml, sparxId: diagram.id } }
+    : { ...bookmarkExistsInWorkspace, state: { graphXml, sparxId: diagram.id } })
+  const headers = { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' }
   try {
     savingBookmark.value++
-    const response = await fetch(url, options)
+    const response = await fetch(url, { method, body, headers })
     const { ok, status } = response
     if (ok) {
       const { data: bookmark } = await response.json()
@@ -340,7 +341,8 @@ const useWorkspace = () => {
     isSelected,
     getDate,
     jwtClaims,
-    saveBookmark,
+    // saveBookmark,
+    upsertBookmark,
     isSavingBookmark,
     factSheetIndex: computed(() => unref(factSheetIndex)),
     buildFactSheetIndex: (diagram: any) => { factSheetIndex.value = null; void debouncedBuildFactSheetIndex(diagram) },
