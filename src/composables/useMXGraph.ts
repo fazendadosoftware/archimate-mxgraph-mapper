@@ -84,7 +84,6 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
         _graph.getModel().addListener(mxEvent.UNDO, undoListener)
         _graph.getView().addListener(mxEvent.UNDO, undoListener)
       }
-      // console.log(getXml(_graph))
     } catch (error) {
       console.error(error)
       void toast.fire({
