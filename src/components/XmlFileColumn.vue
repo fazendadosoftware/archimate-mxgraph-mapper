@@ -72,7 +72,7 @@ import useSwal from '../composables/useSwal'
 
 const SearchInputComponent = SearchInput as any
 const { loadFile, loading, filteredDiagrams, searchQuery, isSelected, toggleDiagramSelection, hasDiagrams } = useDiagrams()
-const { isAuthenticated, saveBookmark, fetchVisualizerBookmarks } = useWorkspace()
+const { isAuthenticated, upsertBookmark, fetchVisualizerBookmarks } = useWorkspace()
 const { toast } = useSwal()
 
 const limiter = new Bottleneck({ maxConcurrent: 8 })
@@ -117,7 +117,7 @@ const importAll = async () => {
         .map(async diagram => ({ diagram, xml: await generateXmlFromDiagram(diagram) }))
     )
     await Promise.all(
-      mappedDiagrams.map(({ diagram, xml }) => limiter.schedule({ id: `${diagram.id}` }, () => saveBookmark(diagram, xml, true)))
+      mappedDiagrams.map(({ diagram, xml }) => limiter.schedule({ id: `${diagram.id}` }, () => upsertBookmark(diagram, xml, true)))
     )
     toast.fire({
       icon: 'success',
