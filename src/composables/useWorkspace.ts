@@ -8,6 +8,7 @@ import { create, convert } from 'xmlbuilder2'
 import useSwal from './useSwal'
 import { Diagram } from '../types'
 import 'isomorphic-fetch'
+import { XMLBuilder } from 'xmlbuilder2/lib/interfaces'
 
 const { toast } = useSwal()
 
@@ -111,6 +112,19 @@ const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
 
   const doc = create()
   const _root = doc.ele('mxGraphModel').ele('root')
+
+  const addEl = (rootEl: XMLBuilder, elTag: string, elProps: any) => {
+    const el = rootEl.ele(elTag)
+    const att = Object.entries(elProps)
+      .filter(([key]) => key.charAt(0) === '@')
+      .reduce((accumulator: any, [key, value]) => ({ ...accumulator, [key.substring(1)]: value }), {})
+    el.att(att)
+    Object.entries(elProps)
+      .filter(([key]) => key.charAt(0) !== '@')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      .forEach(([key, value]) => Array.isArray(value) ? value.forEach(_value => addEl(el, key, _value)) : addEl(el, key, value))
+  }
+
   // @ts-expect-error
   convert(xml, { format: 'object' })?.mxGraphModel?.root?.mxCell
     .forEach((mxCell: any) => {
@@ -141,10 +155,7 @@ const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
       }
       const _mxCell = _rootEle.ele('mxCell', factSheet === null ? { ...mxCellAttrs, id } : mxCellAttrs)
       const [{ mxGeometry } = { mxGeometry: null }] = children ?? []
-      if (mxGeometry !== null) {
-        const mxGeometryAttrs = Object.entries(mxGeometry).reduce((accumulator, [key, value]) => ({ ...accumulator, [key.substring(1)]: value }), {})
-        _mxCell.ele('mxGeometry', mxGeometryAttrs)
-      }
+      if (mxGeometry !== null) addEl(_mxCell, 'mxGeometry', mxGeometry)
     })
 
   const enrichedXml = doc.end({ headless: true, prettyPrint: true })
