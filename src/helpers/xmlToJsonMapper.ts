@@ -136,7 +136,8 @@ const mapExtensionElement = (_element: any, model: Model) => {
               sourcePoint: null,
               targetPoint: null,
               edge: null,
-              path: []
+              path: [],
+              styleParams: {}
             })
           })
         return accumulator
