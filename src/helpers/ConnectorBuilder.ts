@@ -76,8 +76,14 @@ export class ConnectorBuilder {
 
   getConnectorStyle (connector: Connector) {
     const isHidden = connector?.styleParams?.Hidden === '1'
-    const connectorStyleParams = ARCHIMATE_RELATION_INDEX[connector?.type ?? 'DEFAULT']
+    const connectorStyleParams = { ...ARCHIMATE_RELATION_INDEX[connector?.type ?? 'DEFAULT'] }
     if (isHidden) connectorStyleParams.strokeColor = 'none'
+    /*
+    if (connector.start === 'EAID-FC7F83E1-5B24-43e3-9A88-5116D9E284C6') {
+      const { [connector.start]: source, [connector.end]: target } = this._diagramElementIndex
+      console.log('CONNECTOR', connector.edge, connector.sourcePoint, connector.targetPoint, `${source.name ?? ''} -> ${target.name ?? ''}`)
+    }
+    */
     if (connector.sourcePoint !== null && connector.targetPoint !== null) {
       const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
