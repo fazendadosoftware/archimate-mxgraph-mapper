@@ -49,9 +49,12 @@ const drawGraph = (props: DrawGraphProps) => {
           const defaultParent = _graph.getDefaultParent()
           diagram.elements
             .forEach((element: Element) => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const { id, parent, name, rect } = element
               const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
-              const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
+              // NOTE: disables parent-child rendering in the diagram
+              // const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
+              const parentNode = defaultParent
               const style = getStyle(element.type)
               if (style === null && ((element?.type) != null)) {
                 throw Error(`null style for element type ${element?.type ?? 'undefined'}`)

@@ -52,12 +52,13 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
     hierarchyLevel = 0,
     $: { 'xmi:id': id = null, 'xmi:type': type = null, name = null },
     ownedComment: ownedComments = [],
-    packagedElement: packagedElements = []
+    packagedElement: packagedElements = [],
+    nestedClassifier: nestedClassifiers = []
   } = _packagedElement ?? {}
   if (id === null || type === null) throw Error(`invalid packagedElement: ${JSON.stringify(_packagedElement)}`)
   id = mapId(id)
   const childLevel = typeof hierarchyLevel === 'number' ? hierarchyLevel + 1 : 0
-  const children = packagedElements.map(({ $: { 'xmi:id': id = null } }) => id !== null ? mapId(id) : id) as string[]
+  const children = [...packagedElements, ...nestedClassifiers].map(({ $: { 'xmi:id': id = null } }) => id !== null ? mapId(id) : id) as string[]
   packagedElements = packagedElements.map((packagedElement: any) => ({ ...packagedElement, hierarchyLevel: childLevel, parent: id, children: children }))
 
   accumulator = packagedElements.reduce(packagedElementReducer, accumulator)
@@ -183,6 +184,9 @@ const mapDiagramElement = (_diagramElement: any) => {
   } = geometry.replace(/;/g, ' ').trim().split(' ')
     .reduce((accumulator: any, vertex: string) => {
       const [key, value] = vertex.split('=')
+      if (key === 'SX') {
+        console.log('SX', value, vertex)
+      }
       if (key === 'Path') {
         const coords = value.split('$')
           .filter(pair => pair.length > 0)
@@ -199,6 +203,7 @@ const mapDiagramElement = (_diagramElement: any) => {
       return accumulator
     }, {})
   const sourcePoint = SX !== null && SY !== null ? { x: SX, y: SY } : null
+  if (subject === 'EAID_876FEADC_A4D9_4e4a_9E57_9EE692CFC6B0') console.log('SUBJECT', subject, SX, SY)
   const targetPoint = EX !== null && EY !== null ? { x: EX, y: EY } : null
   const rect = x0 == null ? null : { x0, y0, width: x1 - x0, height: y1 - y0 }
   if (typeof seqno === 'string') {
