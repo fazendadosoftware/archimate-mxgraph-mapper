@@ -27,6 +27,7 @@ export interface ExtensionDiagramElement {
   sourcePoint: null | CoordinatePoint
   targetPoint: null | CoordinatePoint
   path: CoordinatePoint[]
+  styleParams: Record<string, string>
 }
 
 export interface ExtensionDiagramProject {

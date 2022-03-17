@@ -13,27 +13,28 @@ const styleIndex: Record<string, string> = styles
 const { mxClient, mxUtils, mxGraph: MXGraph, mxCodec: MXCodec, mxOutline: MXOutline, mxUndoManager: MXUndoManager, mxEvent, mxPoint: MXPoint } = mxgraph
 
 interface DrawGraphProps {
-  graphContainer: Ref<Element | null>
-  outlineContainer: Ref<Element | null>
-  undoManager: any
-  graph: Ref<any>
-  outline: Ref<any>
-  undoListener: any
+  graphContainer?: Ref<HTMLDivElement | null>
+  outlineContainer?: Ref<HTMLDivElement | null>
+  undoManager?: any
+  graph?: Ref<any>
+  outline?: Ref<any>
+  undoListener?: any
+  diagram: Diagram | string
+  getXmlOnly?: boolean
 }
 
 const getStyle = (type: string | null) => type === null ? null : styleIndex[type] ?? null
 
-const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
-  const { graphContainer, outlineContainer, undoManager, graph, outline, undoListener } = props
+const drawGraph = (props: DrawGraphProps) => {
+  const { graphContainer, outlineContainer, undoManager, graph, outline, undoListener, diagram, getXmlOnly } = props
 
-  const graphContainerEl = unref(graphContainer)
+  const graphContainerEl = (graphContainer === undefined || getXmlOnly === true) ? document.createElement('div') : unref(graphContainer)
   const outlineContainerEl = unref(outlineContainer)
-  if (graphContainerEl === null || outlineContainerEl === null) return
 
   if (mxClient.isBrowserSupported() === false) mxUtils.error('Browser is not supported!', 200, false)
   else {
     try {
-      if (unref(graph) !== null) { unref(graph).destroy(); unref(undoManager).clear() }
+      if (graph !== undefined && unref(graph) !== null) { unref(graph).destroy(); unref(undoManager).clear() }
       const _graph = new MXGraph(graphContainerEl)
       _graph.getModel().beginUpdate()
       try {
@@ -48,9 +49,12 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
           const defaultParent = _graph.getDefaultParent()
           diagram.elements
             .forEach((element: Element) => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const { id, parent, name, rect } = element
               const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
-              const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
+              // NOTE: disables parent-child rendering in the diagram
+              // const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
+              const parentNode = defaultParent
               const style = getStyle(element.type)
               if (style === null && ((element?.type) != null)) {
                 throw Error(`null style for element type ${element?.type ?? 'undefined'}`)
@@ -59,6 +63,29 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
             })
 
           const connectorBuilder = new ConnectorBuilder(diagram)
+          /*
+          const elementIndex = diagram.elements
+            .reduce((accumulator: Record<string, Element>, element) => ({ ...accumulator, [element.id]: element }), {})
+          const catiaConnectors = diagram.connectors
+            .filter(connector => connector.start === 'EAID-FC7F83E1-5B24-43e3-9A88-5116D9E284C6')
+            .sort((connectorA, connectorB) => {
+              const A = connectorA?.sourcePoint?.x ?? 0
+              const B = connectorB?.sourcePoint?.x ?? 0
+              return A - B
+            })
+            .map(connector => {
+              const { start, end, sourcePoint, targetPoint } = connector
+              const { [start ?? '']: source, [end ?? '']: target } = elementIndex
+              return {
+                name: `${source.name ?? ''} -> ${target.name ?? ''}`,
+                sourcePoint: sourcePoint?.x,
+                targetPoint: targetPoint?.x,
+                sourceRect: source.rect,
+                targetRect: target.rect
+              }
+            })
+          console.log('CATIA CONNECTORS', JSON.parse(JSON.stringify(catiaConnectors)))
+          */
           diagram.connectors
             .forEach((connector: Connector) => {
               const isReversed = connector?.direction === ConnectorDirection.REVERSE
@@ -75,16 +102,19 @@ const drawGraph = (props: DrawGraphProps, diagram: Diagram | string) => {
         }
       } finally {
         _graph.getModel().endUpdate()
-        graph.value = _graph
-        // console.log(getXml(_graph))
+        if (graph !== undefined) graph.value = _graph
       }
       unref(outline)?.outline?.destroy()
-      if (diagram !== null) {
-        outline.value = new MXOutline(_graph, outlineContainerEl)
-        _graph.getModel().addListener(mxEvent.UNDO, undoListener)
-        _graph.getView().addListener(mxEvent.UNDO, undoListener)
+      if (outline !== undefined) outline.value = new MXOutline(_graph, outlineContainerEl)
+      _graph.getModel().addListener(mxEvent.UNDO, undoListener)
+      _graph.getView().addListener(mxEvent.UNDO, undoListener)
+      if (getXmlOnly === true) {
+        const xml = getXml(_graph)
+        _graph.destroy()
+        undoManager?.clear?.()
+        graphContainerEl?.remove?.()
+        return xml
       }
-      // console.log(getXml(_graph))
     } catch (error) {
       console.error(error)
       void toast.fire({
@@ -103,8 +133,8 @@ const getXml = (graph: any): string => {
 }
 
 interface UseMXGraphProps {
-  graph: Ref<Element | null>
-  outline: Ref<Element | null>
+  graph: Ref<HTMLDivElement | null>
+  outline?: Ref<HTMLDivElement | null>
 }
 
 const useMXGraph = (props: UseMXGraphProps) => {
@@ -115,10 +145,9 @@ const useMXGraph = (props: UseMXGraphProps) => {
   const undoListener = (sender: any, evt: any) => {
     unref(undoManager).undoableEditHappened(evt.getProperty('edit'))
   }
-  const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener }
+  const drawGraphProps: DrawGraphProps = { graphContainer, outlineContainer, undoManager, graph, outline, undoListener, diagram: '' }
   return {
-    drawGraph: (data: Diagram) => drawGraph(drawGraphProps, data),
-    // drawTestGraph: () => drawtTestGraph(drawGraphProps),
+    drawGraph: (data: Diagram, getXmlOnly?: boolean) => drawGraph({ ...drawGraphProps, getXmlOnly, diagram: data }),
     getXml: () => getXml(graph),
     styleIndex: computed(() => styleIndex),
     undoManager,
@@ -126,42 +155,5 @@ const useMXGraph = (props: UseMXGraphProps) => {
   }
 }
 
-const generateXmlFromDiagram = async (diagram: Diagram): Promise<string> => {
-  const el = document.createElement('div')
-  const graph = new MXGraph(el)
-  graph.getModel().beginUpdate()
-  try {
-    const { elements = [], connectors = [] } = diagram
-    const vertexIndex: any = {}
-    const defaultParent = graph.getDefaultParent()
-
-    elements
-      .forEach((element: Element) => {
-        const { id, parent, name, rect } = element
-        const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
-        const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
-        const style = getStyle(element.type)
-        if (geometry !== null && style !== null) vertexIndex[id] = graph.insertVertex(parentNode, id, name, ...geometry, style)
-      })
-
-    connectors
-      .forEach((connector: Connector) => {
-        const { id, start, end } = connector
-        const sourceVertex = vertexIndex[start]
-        const targetVertex = vertexIndex[end]
-        const style = getStyle(connector.type)
-        if (style !== null) graph.insertEdge(defaultParent, id, '', sourceVertex, targetVertex, style)
-      })
-  } finally {
-    graph.getModel().endUpdate()
-  }
-  const xml = getXml(graph)
-
-  graph.destroy()
-  el.remove()
-
-  return xml
-}
-
 export default useMXGraph
-export { styleIndex, generateXmlFromDiagram }
+export { styleIndex, drawGraph }

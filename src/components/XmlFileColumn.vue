@@ -67,7 +67,7 @@ import Bottleneck from 'bottleneck'
 import SearchInput from './SearchInput.vue'
 import useDiagrams from '../composables/useDiagrams'
 import useWorkspace from '../composables/useWorkspace'
-import { generateXmlFromDiagram } from '../composables/useMXGraph'
+import { drawGraph } from '../composables/useMXGraph'
 import useSwal from '../composables/useSwal'
 
 const SearchInputComponent = SearchInput as any
@@ -114,10 +114,10 @@ const importAll = async () => {
   try {
     const mappedDiagrams = await Promise.all(
       unref(filteredDiagrams)
-        .map(async diagram => ({ diagram, xml: await generateXmlFromDiagram(diagram) }))
+        .map(async diagram => ({ diagram, xml: await drawGraph({ diagram, getXmlOnly: true }) }))
     )
     await Promise.all(
-      mappedDiagrams.map(({ diagram, xml }) => limiter.schedule({ id: `${diagram.id}` }, () => upsertBookmark(diagram, xml, true)))
+      mappedDiagrams.map(({ diagram, xml }) => limiter.schedule({ id: `${diagram.id}` }, () => upsertBookmark(diagram, xml as string, true)))
     )
     toast.fire({
       icon: 'success',
