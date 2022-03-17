@@ -75,7 +75,9 @@ export class ConnectorBuilder {
   }
 
   getConnectorStyle (connector: Connector) {
+    const isHidden = connector?.styleParams?.Hidden === '1'
     const connectorStyleParams = ARCHIMATE_RELATION_INDEX[connector?.type ?? 'DEFAULT']
+    if (isHidden) connectorStyleParams.strokeColor = 'none'
     if (connector.sourcePoint !== null && connector.targetPoint !== null) {
       const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain

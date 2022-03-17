@@ -165,7 +165,7 @@ const mapExtensionConnector = (_connector: any, model: Model) => {
 }
 
 const mapDiagramElement = (_diagramElement: any) => {
-  let { $: { geometry = null, seqno, subject = null } } = _diagramElement ?? {}
+  let { $: { geometry = null, seqno, subject = null, style = null } } = _diagramElement ?? {}
   if (typeof subject !== 'string') throw Error(`invalid diagram element subject: ${JSON.stringify(_diagramElement)}`)
   if (typeof geometry !== 'string') throw Error(`invalid diagram element geometry: ${JSON.stringify(_diagramElement)}`)
   const {
@@ -191,6 +191,12 @@ const mapDiagramElement = (_diagramElement: any) => {
       } else accumulator[key] = parseInt(value)
       return accumulator
     }, {})
+  const styleParams = style.replace(/;/g, ' ').trim().split(' ')
+    .reduce((accumulator: Record<string, string>, vertex: string) => {
+      const [key, value] = vertex.split('=')
+      accumulator[key] = value
+      return accumulator
+    }, {})
   const sourcePoint = SX !== null && SY !== null ? { x: SX, y: SY } : null
   const targetPoint = EX !== null && EY !== null ? { x: EX, y: EY } : null
   const rect = x0 == null ? null : { x0, y0, width: x1 - x0, height: y1 - y0 }
@@ -198,7 +204,7 @@ const mapDiagramElement = (_diagramElement: any) => {
     seqno = parseInt(seqno)
     if (isNaN(seqno)) throw Error(`invalid diagram element seqno: ${JSON.stringify(_diagramElement)}`)
   }
-  const element: ExtensionDiagramElement = { id: subject, seqno, geometry, rect, sourcePoint, targetPoint, edge: EDGE, path }
+  const element: ExtensionDiagramElement = { id: subject, seqno, geometry, rect, sourcePoint, targetPoint, edge: EDGE, path, styleParams }
   return element
 }
 
@@ -288,12 +294,13 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
             let targetPoint = null
             let edge = null
             let path: CoordinatePoint[] = []
+            let styleParams = {}
             const indexedElement = elementIndex[connector.id] ?? null
-            if (indexedElement !== null) ({ sourcePoint = null, targetPoint = null, edge = null, path = [] } = indexedElement)
+            if (indexedElement !== null) ({ sourcePoint = null, targetPoint = null, edge = null, path = [], styleParams = {} } = indexedElement)
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
             const direction = connectorDirectionIndex[connector.id]
-            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint, edge, path } }
+            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint, edge, path, styleParams } }
           }, accumulator)
           return accumulator
         }, {})

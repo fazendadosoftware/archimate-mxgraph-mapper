@@ -12,4 +12,5 @@ export interface Connector {
   sourcePoint: CoordinatePoint | null
   targetPoint: CoordinatePoint | null
   path: CoordinatePoint[]
+  styleParams: Record<string, string>
 }
