@@ -21,10 +21,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "@headlessui/vue": "^1.5.0",
     "bottleneck": "^2.19.5",
     "buffer": "^6.0.3",
     "comlink": "^4.3.1",
     "date-fns": "^2.25.0",
+    "electron-store": "^8.0.1",
     "flexsearch": "^0.7.21",
     "isomorphic-fetch": "^3.0.0",
     "jsoneditor": "^9.5.7",

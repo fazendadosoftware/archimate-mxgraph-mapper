@@ -1,9 +1,20 @@
-const path = require('path');
-const { app, BrowserWindow, Menu, dialog } = require('electron');
+const path = require('path')
+const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron')
+const Store = require('electron-store')
 const pkg = require('../package.json')
 const { name, version } = pkg
 
 const isDev = process.env.IS_DEV == "true" ? true : false;
+
+const store = new Store()
+
+// IPC listener
+ipcMain.on('electron-store-get', async (event, val) => {
+  event.returnValue = store.get(val);
+})
+ipcMain.on('electron-store-set', async (event, key, val) => {
+  store.set(key, val);
+})
 
 function createWindow() {
   // Create the browser window.
@@ -14,7 +25,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
       webSecurity: false
-    },
+    }
   })
 
   // and load the index.html of the app.
