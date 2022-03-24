@@ -1,4 +1,5 @@
 import { CoordinatePoint } from './extensionDiagram'
+
 export interface Connector {
   id: string
   category: string | null

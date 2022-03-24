@@ -1,7 +1,8 @@
 import { Connector, Diagram, Element } from '../types'
+import { ConnectorDirection } from './xmlToJsonMapper'
 import mxgraph from '../helpers/mxgraph-shims'
 
-const { mxConstants } = mxgraph
+const mxConstants = mxgraph.mxConstants as Record<string, string>
 
 // https://github.com/jgraph/mxgraph/blob/master/javascript/src/js/util/mxConstants.js
 const ARCHIMATE_RELATION_INDEX: Record<string, any> = {
@@ -66,6 +67,32 @@ const ARCHIMATE_RELATION_INDEX: Record<string, any> = {
   }
 }
 
+const getConnectorStyleParams = (connector: Connector) => {
+  const connectorStyleParams = { ...ARCHIMATE_RELATION_INDEX[connector?.type ?? 'DEFAULT'] }
+  if (connector.direction === ConnectorDirection.REVERSE) {
+    if (connectorStyleParams[mxConstants.STYLE_ENDARROW] !== undefined) {
+      connectorStyleParams[mxConstants.STYLE_STARTARROW] = connectorStyleParams[mxConstants.STYLE_ENDARROW]
+      connectorStyleParams[mxConstants.STYLE_STARTFILL] = connectorStyleParams[mxConstants.STYLE_ENDFILL]
+      connectorStyleParams[mxConstants.STYLE_ENDARROW] = undefined
+      connectorStyleParams[mxConstants.STYLE_ENDFILL] = undefined
+    } else if (connectorStyleParams[mxConstants.STYLE_STARTARROW] !== undefined) {
+      connectorStyleParams[mxConstants.STYLE_ENDARROW] = connectorStyleParams[mxConstants.STYLE_STARTARROW]
+      connectorStyleParams[mxConstants.STYLE_ENDFILL] = connectorStyleParams[mxConstants.STYLE_STARTFILL]
+      connectorStyleParams[mxConstants.STYLE_STARTARROW] = undefined
+      connectorStyleParams[mxConstants.STYLE_STARTFILL] = undefined
+    }
+  } else if (connector.direction === ConnectorDirection.BIDIRECTIONAL) {
+    if (connectorStyleParams[mxConstants.STYLE_ENDARROW] !== undefined) {
+      connectorStyleParams[mxConstants.STYLE_STARTARROW] = connectorStyleParams[mxConstants.STYLE_ENDARROW]
+      connectorStyleParams[mxConstants.STYLE_STARTFILL] = connectorStyleParams[mxConstants.STYLE_ENDFILL]
+    } else if (connectorStyleParams[mxConstants.STYLE_STARTARROW] !== undefined) {
+      connectorStyleParams[mxConstants.STYLE_ENDARROW] = connectorStyleParams[mxConstants.STYLE_STARTARROW]
+      connectorStyleParams[mxConstants.STYLE_ENDFILL] = connectorStyleParams[mxConstants.STYLE_STARTFILL]
+    }
+  }
+  return connectorStyleParams
+}
+
 export class ConnectorBuilder {
   private readonly _diagramElementIndex: Record<string, Element> = {}
 
@@ -76,7 +103,7 @@ export class ConnectorBuilder {
 
   getConnectorStyle (connector: Connector) {
     const isHidden = connector?.styleParams?.Hidden === '1'
-    const connectorStyleParams = { ...ARCHIMATE_RELATION_INDEX[connector?.type ?? 'DEFAULT'] }
+    const connectorStyleParams = getConnectorStyleParams(connector)
     if (isHidden || connector.targetIsOwnedBehaviorOfSource) connectorStyleParams.strokeColor = 'none'
 
     if (connector.sourcePoint !== null && connector.targetPoint !== null) {

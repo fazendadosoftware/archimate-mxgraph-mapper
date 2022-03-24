@@ -65,9 +65,8 @@ const drawGraph = (props: DrawGraphProps) => {
           const connectorBuilder = new ConnectorBuilder(diagram)
           diagram.connectors
             .forEach((connector: Connector) => {
-              const isReversed = connector?.direction === ConnectorDirection.REVERSE
-              const sourceVertex = vertexIndex[isReversed ? connector.end : connector.start]
-              const targetVertex = vertexIndex[isReversed ? connector.start : connector.end]
+              const sourceVertex = vertexIndex[connector.start]
+              const targetVertex = vertexIndex[connector.end]
               const style = connectorBuilder.getConnectorStyle(connector)
               if (style !== null) {
                 const edge = _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)
