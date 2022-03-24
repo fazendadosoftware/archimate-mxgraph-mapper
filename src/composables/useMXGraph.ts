@@ -50,7 +50,7 @@ const drawGraph = (props: DrawGraphProps) => {
           diagram.elements
             .forEach((element: Element) => {
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              const { id, parent, name, rect } = element
+              const { id, parent, children, name, rect } = element
               const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
               // NOTE: disables parent-child rendering in the diagram
               // const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
@@ -63,29 +63,6 @@ const drawGraph = (props: DrawGraphProps) => {
             })
 
           const connectorBuilder = new ConnectorBuilder(diagram)
-          /*
-          const elementIndex = diagram.elements
-            .reduce((accumulator: Record<string, Element>, element) => ({ ...accumulator, [element.id]: element }), {})
-          const catiaConnectors = diagram.connectors
-            .filter(connector => connector.start === 'EAID-FC7F83E1-5B24-43e3-9A88-5116D9E284C6')
-            .sort((connectorA, connectorB) => {
-              const A = connectorA?.sourcePoint?.x ?? 0
-              const B = connectorB?.sourcePoint?.x ?? 0
-              return A - B
-            })
-            .map(connector => {
-              const { start, end, sourcePoint, targetPoint } = connector
-              const { [start ?? '']: source, [end ?? '']: target } = elementIndex
-              return {
-                name: `${source.name ?? ''} -> ${target.name ?? ''}`,
-                sourcePoint: sourcePoint?.x,
-                targetPoint: targetPoint?.x,
-                sourceRect: source.rect,
-                targetRect: target.rect
-              }
-            })
-          console.log('CATIA CONNECTORS', JSON.parse(JSON.stringify(catiaConnectors)))
-          */
           diagram.connectors
             .forEach((connector: Connector) => {
               const isReversed = connector?.direction === ConnectorDirection.REVERSE

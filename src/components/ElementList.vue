@@ -50,22 +50,26 @@ const props = defineProps<{ diagram: Diagram }>()
 const { diagram } = toRefs(props)
 const { factSheetIndex, isAuthenticated } = useWorkspace()
 
-const columns: ComputedRef<{ key: keyof Element | 'factSheet', label: string, classes?: string, component?: any }[]> = computed(() => [
-  { key: 'name', label: 'Name' },
+const columns: ComputedRef<{ key: keyof Element | 'factSheet' | 'parentName' | 'childrenNames', label: string, classes?: string, component?: any }[]> = computed(() => [
   { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
-  { key: 'id', label: 'ID' },
-  { key: 'parent', label: 'Parent ID' },
+  { key: 'name', label: 'Name' },
+  { key: 'childrenNames', label: 'Children', classes: 'whitespace-pre' },
+  { key: 'parentName', label: 'Parent' },
   { key: 'factSheet', label: 'FactSheet', component: unref(isAuthenticated) ? FactSheetCell : LoginToMatchTag }
 ])
 
 const rows = computed(() => {
   const { elements = [] } = unref(diagram)
+  const elementIndex = elements
+    .reduce((accumulator: Record<string, any>, element) => ({ ...accumulator, [element.id]: element }), {})
   const rows = elements
     .filter(({ isOmmited }) => !isOmmited)
     .map((element: any) => {
-      const { id } = element
+      const { id, parent: parentId, children: childrenIds = [] } = element
+      const { [parentId]: parent = null } = elementIndex
+      const childrenNames = ((childrenIds as string[])?.map(id => elementIndex[id]?.name) ?? []).join('\n')
       const factSheet = unref(factSheetIndex) === null ? null : unref(factSheetIndex)[id]
-      return { ...element, factSheet }
+      return { ...element, factSheet, parentName: parent?.name ?? '-', childrenNames: childrenNames }
     })
   return rows
 })

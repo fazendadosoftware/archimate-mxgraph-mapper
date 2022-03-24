@@ -75,15 +75,20 @@ export class ConnectorBuilder {
   }
 
   getConnectorStyle (connector: Connector) {
+    const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
     const isHidden = connector?.styleParams?.Hidden === '1'
     const connectorStyleParams = { ...ARCHIMATE_RELATION_INDEX[connector?.type ?? 'DEFAULT'] }
     if (isHidden) connectorStyleParams.strokeColor = 'none'
-    /*
-    if (connector.start === 'EAID-FC7F83E1-5B24-43e3-9A88-5116D9E284C6') {
-      const { [connector.start]: source, [connector.end]: target } = this._diagramElementIndex
-      console.log('CONNECTOR', connector.edge, connector.sourcePoint, connector.targetPoint, `${source.name ?? ''} -> ${target.name ?? ''}`)
+    const { id: sourceId = null, parent: sourceParentId = null } = source ?? {}
+    const { id: targetId, parent: targetParentId = null } = target ?? {}
+    const sourceIsParentOfTarget = sourceId !== null && sourceId === targetParentId
+    const targetIsParentOfSource = targetId !== null && targetId === sourceParentId
+    if (sourceId === 'EAID-8420AB7D-1F92-4286-884F-168995B4B5EF') {
+      console.log('source', source)
+      console.log('target', target)
+      console.log(sourceIsParentOfTarget)
     }
-    */
+    // console.log('SOURCE/TARGET', sourceIsParentOfTarget, targetIsParentOfSource)
     if (connector.sourcePoint !== null && connector.targetPoint !== null) {
       const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
