@@ -44,6 +44,14 @@ export const mapOwnedComment = (input: any) => {
   return ownedComment
 }
 
+export const mapOwnedBehavior = (input: any) => {
+  const { $ = null } = input
+  if ($ === null) throw Error(`invalid ownedBehavior: ${JSON.stringify(input)}`)
+  let { 'xmi:id': id } = $ ?? {}
+  id = mapId(id)
+  return id
+}
+
 export type PackagedElementIndex = Record<string, PackagedElement>
 
 export const packagedElementReducer = (accumulator: PackagedElementIndex, _packagedElement: any) => {
@@ -51,6 +59,7 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
     parent = null,
     hierarchyLevel = 0,
     $: { 'xmi:id': id = null, 'xmi:type': type = null, name = null },
+    ownedBehavior: ownedBehaviors = [],
     ownedComment: ownedComments = [],
     packagedElement: packagedElements = [],
     nestedClassifier: nestedClassifiers = []
@@ -70,6 +79,7 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
     name,
     parent,
     children,
+    ownedBehaviors: ownedBehaviors.map(mapOwnedBehavior),
     ownedComments: (ownedComments as any[]).map(mapOwnedComment)
   }
 
@@ -138,7 +148,8 @@ const mapExtensionElement = (_element: any, model: Model) => {
               targetPoint: null,
               edge: null,
               path: [],
-              styleParams: {}
+              styleParams: {},
+              targetIsOwnedBehaviorOfSource: false
             })
           })
         return accumulator
@@ -160,7 +171,20 @@ const mapExtensionConnector = (_connector: any, model: Model) => {
     target: [{ $: { 'xmi:idref': targetID = null } }]
   } = _connector ?? {}
   if (typeof label === 'string') label = label.replace(/[^a-zA-Z_]/g, '')
-  const connector: ExtensionConnector = { id: mapId(id), label, direction, category, type, sourceID: mapId(sourceID), targetID: mapId(targetID) }
+  sourceID = mapId(sourceID)
+  targetID = mapId(targetID)
+  const { [sourceID]: source } = model.packagedElementIndex
+  const targetIsOwnedBehaviorOfSource = (source?.ownedBehaviors ?? []).includes(targetID)
+  const connector: ExtensionConnector = {
+    id: mapId(id),
+    label,
+    direction,
+    category,
+    type,
+    sourceID: mapId(sourceID),
+    targetID: mapId(targetID),
+    targetIsOwnedBehaviorOfSource
+  }
   if (!allowedDirections.includes(direction)) throw Error(`invalid connector direction: ${JSON.stringify(connector)}`)
   if (sourceID === null || targetID === null) throw Error(`invalid connector, source or target IDS are null: ${JSON.stringify(connector)}`)
   return connector
@@ -265,11 +289,18 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
       accumulator[element.id] = element
       return accumulator
     }, {})
+
   const connectorDirectionIndex = extension.connectors
     .reduce((accumulator: Record<string, string>, connector) => {
       accumulator[connector.id] = connector.direction
       return accumulator
     }, {})
+  const connectorTargetIsOwnedBehaviorIndex = extension.connectors
+    .reduce((accumulator: Record<string, boolean>, connector) => {
+      accumulator[connector.id] = connector.targetIsOwnedBehaviorOfSource
+      return accumulator
+    }, {})
+
   // we need to create a link index from elements
   const diagrams = extension.diagrams
     .map(extensionDiagram => {
@@ -303,7 +334,8 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
             const direction = connectorDirectionIndex[connector.id]
-            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint, edge, path, styleParams } }
+            const targetIsOwnedBehaviorOfSource = connectorTargetIsOwnedBehaviorIndex[connector.id]
+            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint, edge, path, styleParams, targetIsOwnedBehaviorOfSource } }
           }, accumulator)
           return accumulator
         }, {})

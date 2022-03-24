@@ -75,20 +75,10 @@ export class ConnectorBuilder {
   }
 
   getConnectorStyle (connector: Connector) {
-    const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
     const isHidden = connector?.styleParams?.Hidden === '1'
     const connectorStyleParams = { ...ARCHIMATE_RELATION_INDEX[connector?.type ?? 'DEFAULT'] }
-    if (isHidden) connectorStyleParams.strokeColor = 'none'
-    const { id: sourceId = null, parent: sourceParentId = null } = source ?? {}
-    const { id: targetId, parent: targetParentId = null } = target ?? {}
-    const sourceIsParentOfTarget = sourceId !== null && sourceId === targetParentId
-    const targetIsParentOfSource = targetId !== null && targetId === sourceParentId
-    if (sourceId === 'EAID-8420AB7D-1F92-4286-884F-168995B4B5EF') {
-      console.log('source', source)
-      console.log('target', target)
-      console.log(sourceIsParentOfTarget)
-    }
-    // console.log('SOURCE/TARGET', sourceIsParentOfTarget, targetIsParentOfSource)
+    if (isHidden || connector.targetIsOwnedBehaviorOfSource) connectorStyleParams.strokeColor = 'none'
+
     if (connector.sourcePoint !== null && connector.targetPoint !== null) {
       const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
       // eslint-disable-next-line @typescript-eslint/prefer-optional-chain

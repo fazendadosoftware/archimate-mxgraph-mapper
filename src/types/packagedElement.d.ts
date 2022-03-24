@@ -10,6 +10,7 @@ export interface PackagedElement {
   hierarchyLevel: number
   name: string
   ownedComments: OwnedComment[]
+  ownedBehaviors: any[]
   ownedAttributes?: null // skipped property
   memberEnds?: null // skipped property
   ownedEnd?: null // skipped property

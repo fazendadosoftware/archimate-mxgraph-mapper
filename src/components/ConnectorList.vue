@@ -53,10 +53,12 @@ const elementIndex = elements
   .reduce((accumulator: Record<string, any>, element) => ({ ...accumulator, [element.id]: element }), {})
 
 const columns: ComputedRef<{ key: keyof Connector | 'startElementName' | 'endElementName', label: string, classes?: string, mapFn?: (element: Element) => string, component?: any }[]> = computed(() => [
+  { key: 'id', label: 'ID' },
   { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
   { key: 'direction', label: 'Direction' },
   { key: 'startElementName', label: 'Source' },
   { key: 'endElementName', label: 'Target' },
+  { key: 'targetIsOwnedBehaviorOfSource', label: 'Owned Behavior?', component: (connector: Connector) => connector.targetIsOwnedBehaviorOfSource ? ExternalConnectorMarker : null },
   { key: 'isExternal', label: 'Is External?', component: (connector: Connector) => connector.isExternal ? ExternalConnectorMarker : null }
 ])
 

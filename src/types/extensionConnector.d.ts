@@ -12,4 +12,5 @@ export interface ExtensionConnector {
   type: string | null
   sourceID: string
   targetID: string
+  targetIsOwnedBehaviorOfSource: boolean
 }

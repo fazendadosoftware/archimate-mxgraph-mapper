@@ -12,5 +12,6 @@ export interface Connector {
   sourcePoint: CoordinatePoint | null
   targetPoint: CoordinatePoint | null
   path: CoordinatePoint[]
+  targetIsOwnedBehaviorOfSource: boolean
   styleParams: Record<string, string>
 }
