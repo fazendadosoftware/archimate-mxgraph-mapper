@@ -144,9 +144,11 @@ const mapExtensionElement = (_element: any, model: Model) => {
               start,
               isExternal: null,
               direction: ConnectorDirection.UNSPECIFIED,
-              sourcePoint: null,
-              targetPoint: null,
+              S: { x: 0, y: 0 },
+              E: { x: 0, y: 0 },
               edge: null,
+              mode: null,
+              tree: null,
               path: [],
               styleParams: {},
               targetIsOwnedBehaviorOfSource: false
@@ -224,14 +226,16 @@ const mapDiagramElement = (_diagramElement: any) => {
       accumulator[key] = value
       return accumulator
     }, {})
-  const sourcePoint = SX !== null && SY !== null ? { x: SX, y: SY } : null
-  const targetPoint = EX !== null && EY !== null ? { x: EX, y: EY } : null
+  const mode = typeof styleParams.Mode === 'string' ? parseInt(styleParams.Mode) : null
+  const tree = styleParams.TREE ?? null
+  const S = SX !== null && SY !== null ? { x: SX, y: SY } : null
+  const E = EX !== null && EY !== null ? { x: EX, y: EY } : null
   const rect = x0 == null ? null : { x0, y0, width: x1 - x0, height: y1 - y0 }
   if (typeof seqno === 'string') {
     seqno = parseInt(seqno)
     if (isNaN(seqno)) throw Error(`invalid diagram element seqno: ${JSON.stringify(_diagramElement)}`)
   }
-  const element: ExtensionDiagramElement = { id, seqno, geometry, rect, sourcePoint, targetPoint, edge: EDGE, path, styleParams }
+  const element: ExtensionDiagramElement = { id, seqno, geometry, rect, S, E, edge: EDGE, mode, tree, path, styleParams }
   return element
 }
 
@@ -324,18 +328,32 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
         .reduce((accumulator: Record<string, Connector>, element) => {
           element = { ...element, id: mapId(element.id) }
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
-            let sourcePoint = null
-            let targetPoint = null
+            const { mode, tree } = elementIndex[connector.id]
+            let S = null
+            let E = null
             let edge = null
             let path: CoordinatePoint[] = []
             let styleParams = {}
             const indexedElement = elementIndex[connector.id] ?? null
-            if (indexedElement !== null) ({ sourcePoint = null, targetPoint = null, edge = null, path = [], styleParams = {} } = indexedElement)
+            if (indexedElement !== null) ({ S = null, E = null, edge = null, path = [], styleParams = {} } = indexedElement)
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
             const direction = connectorDirectionIndex[connector.id]
             const targetIsOwnedBehaviorOfSource = connectorTargetIsOwnedBehaviorIndex[connector.id]
-            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint, edge, path, styleParams, targetIsOwnedBehaviorOfSource } }
+            accumulator[connector.id] = {
+              ...connector,
+              direction,
+              isExternal,
+              S,
+              E,
+              edge,
+              mode,
+              tree,
+              path,
+              styleParams,
+              targetIsOwnedBehaviorOfSource
+            }
+            return accumulator
           }, accumulator)
           return accumulator
         }, {})

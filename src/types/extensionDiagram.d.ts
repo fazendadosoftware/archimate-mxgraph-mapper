@@ -24,8 +24,10 @@ export interface ExtensionDiagramElement {
   geometry: string
   rect: null | RectGeometry
   edge: 1 | 2 | 3 | 4 | null
-  sourcePoint: null | CoordinatePoint
-  targetPoint: null | CoordinatePoint
+  mode: number | null
+  tree: string | null
+  S: null | CoordinatePoint
+  E: null | CoordinatePoint
   path: CoordinatePoint[]
   styleParams: Record<string, string>
 }
