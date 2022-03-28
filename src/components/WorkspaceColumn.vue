@@ -31,20 +31,32 @@
         </div>
       </div>
     </div>
-    <current-workspace class="-mx-2 px-2 py-2 bg-white" />
+    <div class="-mx-2 bg-white divide-y">
+      <current-workspace class="p-2" />
+      <!--<toggle-diagram-overwrite class="p-2" />-->
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { unref } from 'vue'
+import { ref, unref } from 'vue'
 import useWorkspace from '../composables/useWorkspace'
 import useDiagrams from '../composables/useDiagrams'
 import SearchInput from './SearchInput.vue'
 import AuthenticateButton from './AuthenticateButton.vue'
 import CurrentWorkspace from './CurrentWorkspace.vue'
+import ToggleDiagramOverwrite from './ToggleDiagramOverwrite.vue'
+import { getOverwriteSetting, setOverwriteSetting } from '../store'
 
 const { isAuthenticated, filteredBookmarks, getDate, toggleBookmarkSelection, isSelected, searchQuery, fetchVisualizerBookmarks, buildFactSheetIndex, isLoading } = useWorkspace()
 const { selectedDiagram } = useDiagrams()
+
+const overwriteSetting = ref(getOverwriteSetting())
+
+const toggleOverwriteSetting = () => {
+  setOverwriteSetting(!getOverwriteSetting())
+  overwriteSetting.value = getOverwriteSetting()
+}
 
 const bookmarkHasXml = (bookmark: any) => !!bookmark?.state?.graphXml
 const refresh = async () => {

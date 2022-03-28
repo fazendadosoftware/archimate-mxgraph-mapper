@@ -1,4 +1,5 @@
 import { CoordinatePoint } from './extensionDiagram'
+
 export interface Connector {
   id: string
   category: string | null
@@ -9,8 +10,11 @@ export interface Connector {
   isExternal: boolean | null
   direction: string
   edge: 1 | 2 | 3 | 4 | null
-  sourcePoint: CoordinatePoint | null
-  targetPoint: CoordinatePoint | null
+  mode: number | null
+  tree: string | null
+  S: CoordinatePoint | null
+  E: CoordinatePoint | null
   path: CoordinatePoint[]
+  targetIsOwnedBehaviorOfSource: boolean
   styleParams: Record<string, string>
 }

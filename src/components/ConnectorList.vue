@@ -17,7 +17,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="connector in diagram.connectors"
+                v-for="connector in rows"
                 :key="connector.id"
                 class="bg-white even:bg-gray-100 hover:bg-gray-200 transition-colors cursor-default">
                 <td
@@ -47,13 +47,35 @@ import ExternalConnectorMarker from './ExternalConnectorMarker.vue'
 const props = defineProps<{ diagram: Diagram }>()
 
 const { diagram } = toRefs(props)
+const { elements = [] } = unref(diagram)
 
-const columns: ComputedRef<{ key: keyof Connector, label: string, classes?: string, mapFn?: (element: Element) => string, component?: any }[]> = computed(() => [
+const elementIndex = elements
+  .reduce((accumulator: Record<string, any>, element) => ({ ...accumulator, [element.id]: element }), {})
+
+const columns: ComputedRef<{ key: keyof Connector | 'startElementName' | 'endElementName', label: string, classes?: string, mapFn?: (element: Element) => string, component?: any }[]> = computed(() => [
+  { key: 'id', label: 'ID' },
   { key: 'type', label: 'Type', classes: 'font-medium text-gray-900' },
-  { key: 'start', label: 'SourceID' },
-  { key: 'end', label: 'Target ID' },
   { key: 'direction', label: 'Direction' },
+  { key: 'startElementName', label: 'Source' },
+  { key: 'endElementName', label: 'Target' },
+  { key: 'targetIsOwnedBehaviorOfSource', label: 'Owned Behavior?', component: (connector: Connector) => connector.targetIsOwnedBehaviorOfSource ? ExternalConnectorMarker : null },
   { key: 'isExternal', label: 'Is External?', component: (connector: Connector) => connector.isExternal ? ExternalConnectorMarker : null }
 ])
+
+const rows = computed(() => {
+  const rows = (unref(diagram)?.connectors ?? [])
+    .map(({ start, end, ...connector }) => {
+      const { [start]: startElement } = elementIndex
+      const { [end]: endElement } = elementIndex
+      return {
+        ...connector,
+        start,
+        end,
+        startElementName: startElement?.name ?? '-',
+        endElementName: endElement?.name ?? '-'
+      }
+    })
+  return rows
+})
 
 </script>

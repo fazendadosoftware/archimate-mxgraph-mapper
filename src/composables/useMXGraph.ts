@@ -2,7 +2,6 @@ import mxgraph from '../helpers/mxgraph-shims'
 import '../helpers/mxArchimate3Shapes'
 import useSwal from './useSwal'
 import { Diagram, Element, Connector } from '../types'
-import { ConnectorDirection } from '../helpers/xmlToJsonMapper'
 import { ConnectorBuilder } from '../helpers/ConnectorBuilder'
 import styles from '../assets/data/styles.json'
 import { ref, unref, Ref, computed } from 'vue'
@@ -50,7 +49,7 @@ const drawGraph = (props: DrawGraphProps) => {
           diagram.elements
             .forEach((element: Element) => {
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              const { id, parent, name, rect } = element
+              const { id, parent, children, name, rect } = element
               const geometry = rect === null ? null : [rect.x0, rect.y0, rect.width, rect.height]
               // NOTE: disables parent-child rendering in the diagram
               // const parentNode = parent === null ? defaultParent : vertexIndex[parent] ?? defaultParent
@@ -88,9 +87,8 @@ const drawGraph = (props: DrawGraphProps) => {
           */
           diagram.connectors
             .forEach((connector: Connector) => {
-              const isReversed = connector?.direction === ConnectorDirection.REVERSE
-              const sourceVertex = vertexIndex[isReversed ? connector.end : connector.start]
-              const targetVertex = vertexIndex[isReversed ? connector.start : connector.end]
+              const sourceVertex = vertexIndex[connector.start]
+              const targetVertex = vertexIndex[connector.end]
               const style = connectorBuilder.getConnectorStyle(connector)
               if (style !== null) {
                 const edge = _graph.insertEdge(defaultParent, connector.id, '', sourceVertex, targetVertex, style)

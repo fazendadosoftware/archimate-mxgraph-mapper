@@ -44,6 +44,14 @@ export const mapOwnedComment = (input: any) => {
   return ownedComment
 }
 
+export const mapOwnedBehavior = (input: any) => {
+  const { $ = null } = input
+  if ($ === null) throw Error(`invalid ownedBehavior: ${JSON.stringify(input)}`)
+  let { 'xmi:id': id } = $ ?? {}
+  id = mapId(id)
+  return id
+}
+
 export type PackagedElementIndex = Record<string, PackagedElement>
 
 export const packagedElementReducer = (accumulator: PackagedElementIndex, _packagedElement: any) => {
@@ -51,6 +59,7 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
     parent = null,
     hierarchyLevel = 0,
     $: { 'xmi:id': id = null, 'xmi:type': type = null, name = null },
+    ownedBehavior: ownedBehaviors = [],
     ownedComment: ownedComments = [],
     packagedElement: packagedElements = [],
     nestedClassifier: nestedClassifiers = []
@@ -70,6 +79,7 @@ export const packagedElementReducer = (accumulator: PackagedElementIndex, _packa
     name,
     parent,
     children,
+    ownedBehaviors: ownedBehaviors.map(mapOwnedBehavior),
     ownedComments: (ownedComments as any[]).map(mapOwnedComment)
   }
 
@@ -134,11 +144,14 @@ const mapExtensionElement = (_element: any, model: Model) => {
               start,
               isExternal: null,
               direction: ConnectorDirection.UNSPECIFIED,
-              sourcePoint: null,
-              targetPoint: null,
+              S: { x: 0, y: 0 },
+              E: { x: 0, y: 0 },
               edge: null,
+              mode: null,
+              tree: null,
               path: [],
-              styleParams: {}
+              styleParams: {},
+              targetIsOwnedBehaviorOfSource: false
             })
           })
         return accumulator
@@ -160,7 +173,20 @@ const mapExtensionConnector = (_connector: any, model: Model) => {
     target: [{ $: { 'xmi:idref': targetID = null } }]
   } = _connector ?? {}
   if (typeof label === 'string') label = label.replace(/[^a-zA-Z_]/g, '')
-  const connector: ExtensionConnector = { id: mapId(id), label, direction, category, type, sourceID: mapId(sourceID), targetID: mapId(targetID) }
+  sourceID = mapId(sourceID)
+  targetID = mapId(targetID)
+  const { [sourceID]: source } = model.packagedElementIndex
+  const targetIsOwnedBehaviorOfSource = (source?.ownedBehaviors ?? []).includes(targetID)
+  const connector: ExtensionConnector = {
+    id: mapId(id),
+    label,
+    direction,
+    category,
+    type,
+    sourceID: mapId(sourceID),
+    targetID: mapId(targetID),
+    targetIsOwnedBehaviorOfSource
+  }
   if (!allowedDirections.includes(direction)) throw Error(`invalid connector direction: ${JSON.stringify(connector)}`)
   if (sourceID === null || targetID === null) throw Error(`invalid connector, source or target IDS are null: ${JSON.stringify(connector)}`)
   return connector
@@ -200,14 +226,16 @@ const mapDiagramElement = (_diagramElement: any) => {
       accumulator[key] = value
       return accumulator
     }, {})
-  const sourcePoint = SX !== null && SY !== null ? { x: SX, y: SY } : null
-  const targetPoint = EX !== null && EY !== null ? { x: EX, y: EY } : null
+  const mode = typeof styleParams.Mode === 'string' ? parseInt(styleParams.Mode) : null
+  const tree = styleParams.TREE ?? null
+  const S = SX !== null && SY !== null ? { x: SX, y: SY } : null
+  const E = EX !== null && EY !== null ? { x: EX, y: EY } : null
   const rect = x0 == null ? null : { x0, y0, width: x1 - x0, height: y1 - y0 }
   if (typeof seqno === 'string') {
     seqno = parseInt(seqno)
     if (isNaN(seqno)) throw Error(`invalid diagram element seqno: ${JSON.stringify(_diagramElement)}`)
   }
-  const element: ExtensionDiagramElement = { id, seqno, geometry, rect, sourcePoint, targetPoint, edge: EDGE, path, styleParams }
+  const element: ExtensionDiagramElement = { id, seqno, geometry, rect, S, E, edge: EDGE, mode, tree, path, styleParams }
   return element
 }
 
@@ -265,11 +293,18 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
       accumulator[element.id] = element
       return accumulator
     }, {})
+
   const connectorDirectionIndex = extension.connectors
     .reduce((accumulator: Record<string, string>, connector) => {
       accumulator[connector.id] = connector.direction
       return accumulator
     }, {})
+  const connectorTargetIsOwnedBehaviorIndex = extension.connectors
+    .reduce((accumulator: Record<string, boolean>, connector) => {
+      accumulator[connector.id] = connector.targetIsOwnedBehaviorOfSource
+      return accumulator
+    }, {})
+
   // we need to create a link index from elements
   const diagrams = extension.diagrams
     .map(extensionDiagram => {
@@ -293,17 +328,32 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
         .reduce((accumulator: Record<string, Connector>, element) => {
           element = { ...element, id: mapId(element.id) }
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
-            let sourcePoint = null
-            let targetPoint = null
+            const { mode, tree } = elementIndex[connector.id]
+            let S = null
+            let E = null
             let edge = null
             let path: CoordinatePoint[] = []
             let styleParams = {}
             const indexedElement = elementIndex[connector.id] ?? null
-            if (indexedElement !== null) ({ sourcePoint = null, targetPoint = null, edge = null, path = [], styleParams = {} } = indexedElement)
+            if (indexedElement !== null) ({ S = null, E = null, edge = null, path = [], styleParams = {} } = indexedElement)
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
             const direction = connectorDirectionIndex[connector.id]
-            return { ...accumulator, [connector.id]: { ...connector, direction, isExternal, sourcePoint, targetPoint, edge, path, styleParams } }
+            const targetIsOwnedBehaviorOfSource = connectorTargetIsOwnedBehaviorIndex[connector.id]
+            accumulator[connector.id] = {
+              ...connector,
+              direction,
+              isExternal,
+              S,
+              E,
+              edge,
+              mode,
+              tree,
+              path,
+              styleParams,
+              targetIsOwnedBehaviorOfSource
+            }
+            return accumulator
           }, accumulator)
           return accumulator
         }, {})
