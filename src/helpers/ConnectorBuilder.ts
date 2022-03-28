@@ -30,17 +30,13 @@ const ARCHIMATE_RELATION_INDEX: Record<string, any> = {
   },
   ArchiMate_Aggregation: {
     [mxConstants.STYLE_EDGE]: mxConstants.EDGESTYLE_ORTHOGONAL,
-    // [mxConstants.STYLE_EDGE]: mxConstants.EDGESTYLE_ELBOW,
-    // [mxConstants.STYLE_ELBOW]: mxConstants.ELBOW_VERTICAL,
     [mxConstants.STYLE_STARTARROW]: mxConstants.ARROW_DIAMOND_THIN,
     [mxConstants.STYLE_STARTFILL]: '0',
-    [mxConstants.STYLE_STARTSIZE]: '0',
+    [mxConstants.STYLE_STARTSIZE]: '10',
     [mxConstants.STYLE_ENDARROW]: mxConstants.NONE
   },
   ArchiMate_Assignment: {
     [mxConstants.STYLE_EDGE]: mxConstants.EDGESTYLE_ORTHOGONAL,
-    // [mxConstants.STYLE_EDGE]: mxConstants.EDGESTYLE_ELBOW,
-    // [mxConstants.STYLE_ELBOW]: mxConstants.ELBOW_VERTICAL,
     [mxConstants.STYLE_STARTARROW]: mxConstants.ARROW_OVAL,
     [mxConstants.STYLE_STARTFILL]: '1',
     [mxConstants.STYLE_ENDARROW]: mxConstants.ARROW_BLOCK,
@@ -65,6 +61,12 @@ const ARCHIMATE_RELATION_INDEX: Record<string, any> = {
     [mxConstants.STYLE_ENDFILL]: '1'
   },
   ArchiMate_Realization: {
+    [mxConstants.STYLE_EDGE]: mxConstants.EDGESTYLE_ORTHOGONAL,
+    [mxConstants.STYLE_ENDARROW]: mxConstants.ARROW_BLOCK,
+    [mxConstants.STYLE_ENDFILL]: '0',
+    [mxConstants.STYLE_DASHED]: '1'
+  },
+  ArchiMate_Specialization: {
     [mxConstants.STYLE_EDGE]: mxConstants.EDGESTYLE_ORTHOGONAL,
     [mxConstants.STYLE_ENDARROW]: mxConstants.ARROW_BLOCK,
     [mxConstants.STYLE_ENDFILL]: '0',

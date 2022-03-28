@@ -33,7 +33,7 @@
     </div>
     <div class="-mx-2 bg-white divide-y">
       <current-workspace class="p-2" />
-      <toggle-diagram-overwrite class="p-2" />
+      <!--<toggle-diagram-overwrite class="p-2" />-->
     </div>
   </div>
 </template>
