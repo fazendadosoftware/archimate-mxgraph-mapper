@@ -29,4 +29,5 @@
   "ArchiMate_Plateau": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#E0FFE0;shape=mxgraph.archimate3.tech;techType=plateau;",
   "ArchiMate_Requirement": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#CCCCFF;shape=mxgraph.archimate3.requirement;",
   "ArchiMate_Gap": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#E0FFE0;shape=mxgraph.archimate3.gap;"
+  "ArchiMate_BusinessService": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=serv;archiType=rounded;"
 }

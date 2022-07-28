@@ -62,6 +62,29 @@ const drawGraph = (props: DrawGraphProps) => {
             })
 
           const connectorBuilder = new ConnectorBuilder(diagram)
+          /*
+          const elementIndex = diagram.elements
+            .reduce((accumulator: Record<string, Element>, element) => ({ ...accumulator, [element.id]: element }), {})
+          const catiaConnectors = diagram.connectors
+            .filter(connector => connector.start === 'EAID-FC7F83E1-5B24-43e3-9A88-5116D9E284C6')
+            .sort((connectorA, connectorB) => {
+              const A = connectorA?.sourcePoint?.x ?? 0
+              const B = connectorB?.sourcePoint?.x ?? 0
+              return A - B
+            })
+            .map(connector => {
+              const { start, end, sourcePoint, targetPoint } = connector
+              const { [start ?? '']: source, [end ?? '']: target } = elementIndex
+              return {
+                name: `${source.name ?? ''} -> ${target.name ?? ''}`,
+                sourcePoint: sourcePoint?.x,
+                targetPoint: targetPoint?.x,
+                sourceRect: source.rect,
+                targetRect: target.rect
+              }
+            })
+          console.log('CATIA CONNECTORS', JSON.parse(JSON.stringify(catiaConnectors)))
+          */
           diagram.connectors
             .forEach((connector: Connector) => {
               const sourceVertex = vertexIndex[connector.start]
