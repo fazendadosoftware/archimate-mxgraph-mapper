@@ -17,7 +17,6 @@ const editorOptions: JSONEditorOptions = {
 }
 
 onMounted(() => {
-  console.log()
   const _container = unref(container)
   if (_container !== null) editor.value = new JSONEditor(_container, editorOptions, unref(document))
 })

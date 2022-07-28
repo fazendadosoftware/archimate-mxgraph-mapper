@@ -113,7 +113,7 @@ const getConnectorStyleParams = (connector: Connector) => {
       }
       break
     default:
-      console.log('UNKNOWN CONNECTOR MODE', connector.mode, connector.tree)
+      // console.log('UNKNOWN CONNECTOR MODE', connector.mode, connector.tree)
   }
 
   if (connector.direction === ConnectorDirection.REVERSE) {
@@ -154,6 +154,7 @@ export class ConnectorBuilder {
     if (isHidden || connector.targetIsOwnedBehaviorOfSource) connectorStyleParams.strokeColor = 'none'
 
     const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
+    if (source === null || target === null) return null
     if (source === null || source.rect === null) throw Error(`invalid source node: ${JSON.stringify(source)}`)
     if (target === null || target.rect === null) throw Error(`invalid target node: ${JSON.stringify(target)}`)
 
