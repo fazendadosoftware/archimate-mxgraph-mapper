@@ -338,7 +338,7 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
             let styleParams = {}
             if (indexedElement !== null) ({ S = null, E = null, edge = null, path = [], styleParams = {}, mode, tree } = indexedElement)
             else {
-              console.log('unknwon connector', connector)
+              // console.log('unknwon connector', connector)
             }
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)

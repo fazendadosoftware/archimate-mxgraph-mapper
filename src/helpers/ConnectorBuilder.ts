@@ -113,7 +113,7 @@ const getConnectorStyleParams = (connector: Connector) => {
       }
       break
     default:
-      console.log('UNKNOWN CONNECTOR MODE', connector.mode, connector.tree)
+      // console.log('UNKNOWN CONNECTOR MODE', connector.mode, connector.tree)
   }
 
   if (connector.direction === ConnectorDirection.REVERSE) {
