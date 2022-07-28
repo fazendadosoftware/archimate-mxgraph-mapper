@@ -57,6 +57,7 @@ export const computePoints = (connector: Connector, source: Element, target: Ele
 
   // last point is the last point in path or exitPoint from source
   const lastPoint = connector.path[connector.path.length - 1] ?? exitPoint
+  if (lastPoint === null) return { entryPoint: null, exitPoint: null }
 
   if (connector.E !== null) {
     entryPoint = {

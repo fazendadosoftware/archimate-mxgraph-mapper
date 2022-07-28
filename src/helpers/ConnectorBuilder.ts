@@ -154,6 +154,7 @@ export class ConnectorBuilder {
     if (isHidden || connector.targetIsOwnedBehaviorOfSource) connectorStyleParams.strokeColor = 'none'
 
     const { [connector.start]: source = null, [connector.end]: target = null } = this._diagramElementIndex
+    if (source === null || target === null) return null
     if (source === null || source.rect === null) throw Error(`invalid source node: ${JSON.stringify(source)}`)
     if (target === null || target.rect === null) throw Error(`invalid target node: ${JSON.stringify(target)}`)
 

@@ -274,7 +274,7 @@ export const mapDocumentation = (xmi: any): Documentation => {
   const { exporter = '', exporterID = '', exporterVersion = '' } = $
   if (exporter !== EXPORTER) throw Error(`invalid exporter: got ${exporter as string}, expected ${EXPORTER}`)
   if (exporterVersion !== EXPORTER_VERSION) throw Error(`invalid exporter version: got ${exporterVersion as string}, expected ${EXPORTER_VERSION}`)
-  if (exporterID === '') throw Error(`invalid exporter ID: ${exporterID as string}`)
+  // if (exporterID === '') throw Error(`invalid exporter ID: ${exporterID as string}`)
   const documentation: Documentation = { exporter, exporterVersion, exporterID }
   return documentation
 }
@@ -328,14 +328,18 @@ export const mapExportedDocument = async (rawDocument: string): Promise<Exported
         .reduce((accumulator: Record<string, Connector>, element) => {
           element = { ...element, id: mapId(element.id) }
           accumulator = (element?.connectors ?? []).reduce((accumulator, connector) => {
-            const { mode, tree } = elementIndex[connector.id]
+            const indexedElement = elementIndex[connector.id] ?? null
             let S = null
             let E = null
             let edge = null
+            let mode = null
+            let tree = null
             let path: CoordinatePoint[] = []
             let styleParams = {}
-            const indexedElement = elementIndex[connector.id] ?? null
-            if (indexedElement !== null) ({ S = null, E = null, edge = null, path = [], styleParams = {} } = indexedElement)
+            if (indexedElement !== null) ({ S = null, E = null, edge = null, path = [], styleParams = {}, mode, tree } = indexedElement)
+            else {
+              console.log('unknwon connector', connector)
+            }
             const { start, end } = connector
             const isExternal = !(elementIndex[start] !== undefined && elementIndex[end] !== undefined)
             const direction = connectorDirectionIndex[connector.id]

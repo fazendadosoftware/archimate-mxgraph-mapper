@@ -8,6 +8,8 @@
   "ArchiMate_TechnologyObject": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#AFFFAF;shape=mxgraph.archimate3.application;appType=artifact;archiType=square;",
   "ArchiMate_TechnologyService": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#AFFFAF;shape=mxgraph.archimate3.application;appType=serv;archiType=rounded",
   "ArchiMate_SystemSoftware": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#AFFFAF;shape=mxgraph.archimate3.application;appType=sysSw;archiType=square;",
+  "ArchiMate_Stakeholder": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#CCCCFF;shape=mxgraph.archimate3.application;appType=role;archiType=oct;",
+  "ArchiMate_Goal": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#CCCCFF;shape=mxgraph.archimate3.application;appType=goal;archiType=oct;",
   "Activity": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=func;archiType=rounded;",
   "Class": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.businessObject;overflow=fill;",
   "Note": "text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;",
@@ -21,5 +23,10 @@
   "ArchiMate_Course_Of_Action": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#F5DEAA;shape=mxgraph.archimate3.application;appType=course;archiType=rounded;",
   "ArchiMate_Grouping": "shape=folder;spacingTop=10;tabWidth=100;tabHeight=25;tabPosition=left;html=1;dashed=1;",
   "ArchiMate_BusinessFunction": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=func;archiType=rounded;",
-  "ArchiMate_BusinessService": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=serv;archiType=rounded;"
+  "ArchiMate_BusinessService": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#ffff99;shape=mxgraph.archimate3.application;appType=serv;archiType=rounded;",
+  "ArchiMate_WorkPackage": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#FFE0E0;shape=mxgraph.archimate3.application;archiType=rounded;",
+  "ArchiMate_Deliverable": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#FFE0E0;shape=mxgraph.archimate3.deliverable;",
+  "ArchiMate_Plateau": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#E0FFE0;shape=mxgraph.archimate3.tech;techType=plateau;",
+  "ArchiMate_Requirement": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#CCCCFF;shape=mxgraph.archimate3.requirement;",
+  "ArchiMate_Gap": "html=1;outlineConnect=0;whiteSpace=wrap;fillColor=#E0FFE0;shape=mxgraph.archimate3.gap;"
 }

@@ -11,6 +11,9 @@
 /**
 * Extends mxShape.
 */
+import MXGraph from 'mxgraph'
+const mxGraph = MXGraph()
+const mxConstants = mxGraph.mxConstants
 
 function mxArchiMate3Application(bounds, fill, stroke, strokewidth) {
   mxShape.call(this);
@@ -150,7 +153,6 @@ mxArchiMate3Application.prototype.foreground = function (c, x, y, w, h) {
   var type = mxUtils.getValue(this.style, mxArchiMate3Application.prototype.cst.TYPE, '');
 
   c.setDashed(false);
-
   if (type === mxArchiMate3Application.prototype.cst.COMPONENT) {
     c.translate(1, 0);
     w = w - 2;
@@ -366,7 +368,6 @@ mxArchiMate3Application.prototype.foreground = function (c, x, y, w, h) {
     c.arcTo(w * 2.3, h * 2.3, 0, 0, 1, w * 0.05, h * 0.05);
     c.close();
     c.stroke();
-
     var strokeColor = mxUtils.getValue(this.style, mxConstants.STYLE_STROKECOLOR, '#000000');
     c.setFillColor(strokeColor);
 
@@ -384,7 +385,6 @@ mxArchiMate3Application.prototype.foreground = function (c, x, y, w, h) {
   else if (type === mxArchiMate3Application.prototype.cst.REQUIREMENT) {
     c.translate(0, 4);
     h = h - 8;
-
     mxArchiMate3Requirement.prototype.background(c, x, y, w, h);
   }
   else if (type === mxArchiMate3Application.prototype.cst.CONSTRAINT) {
