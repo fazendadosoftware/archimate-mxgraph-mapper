@@ -150,6 +150,8 @@ export class ConnectorBuilder {
 
   getConnectorStyle (connector: Connector) {
     const isHidden = connector?.styleParams?.Hidden === '1'
+    // hidden connectors are now ommited from diagram
+    if (isHidden) return null
     const connectorStyleParams = getConnectorStyleParams(connector)
     if (isHidden || connector.targetIsOwnedBehaviorOfSource) connectorStyleParams.strokeColor = 'none'
 
