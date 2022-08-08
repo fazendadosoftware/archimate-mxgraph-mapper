@@ -106,7 +106,9 @@ export const authenticate = async (host: string, apitoken: string) => {
   }
 }
 
-const isSelected = (bookmark: any) => bookmark.id === unref(selectedBookmark)?.id
+const isSelected = (bookmark: any) => {
+  return bookmark.id === unref(selectedBookmark)?.id
+}
 
 const enrichXml = async (diagram: Diagram, xml: string): Promise<string> => {
   if (unref(factSheetIndex) === null) await buildFactSheetIndex(diagram)
